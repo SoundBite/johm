@@ -154,6 +154,7 @@ public final class JOhm {
         Nest nest = new Nest(clazz);
         nest.setJedisPool(jedisPool);
         
+        
         for(NVField pair : attributes) {
             String attributeName;
             if (!JOhmUtils.Validator.isIndexable(pair.getAttributeName())) {
@@ -414,8 +415,10 @@ public final class JOhm {
         JOhmUtils.Validator.checkAttributeReferenceIndexRules(field);
         if (field.isAnnotationPresent(Attribute.class)) {
             field.setAccessible(true);
-            field.set(newInstance, JOhmUtils.Convertor.convert(field,
+            if(hashedObject.get(field.getName())!=null) {
+                field.set(newInstance, JOhmUtils.Convertor.convert(field,
                     hashedObject.get(field.getName())));
+            }
         }
         if (field.isAnnotationPresent(Reference.class)) {
             field.setAccessible(true);
