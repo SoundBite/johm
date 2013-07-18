@@ -147,58 +147,76 @@ public final class JOhm {
      * @return
      */
     @SuppressWarnings("unchecked")
-        public static <T> List<T> find(Class<?> clazz, NVField... attributes) {
-        JOhmUtils.Validator.checkValidModelClazz(clazz);
-        List<Object> results = null;
+    public static <T> List<T> find(Class<?> clazz, NVField... attributes) {
+    	JOhmUtils.Validator.checkValidModelClazz(clazz);
+    	List<Object> results = null;
 
-        Nest nest = new Nest(clazz);
-        nest.setJedisPool(jedisPool);
-        
-        
-        for(NVField pair : attributes) {
-            String attributeName;
-            if (!JOhmUtils.Validator.isIndexable(pair.getAttributeName())) {
-                throw new InvalidFieldException();
-            }
-            
-            try {
-                Field field = clazz.getDeclaredField(pair.getAttributeName());
-                field.setAccessible(true);
-                if (!field.isAnnotationPresent(Indexed.class)) {
-                    throw new InvalidFieldException();
-                }
-                if (field.isAnnotationPresent(Reference.class)) {
-                    attributeName = JOhmUtils.getReferenceKeyName(field);
-                }
-                else {
-                    attributeName=pair.getAttributeName();
-                }
-            } catch (SecurityException e) {
-                throw new InvalidFieldException();
-            } catch (NoSuchFieldException e) {
-                throw new InvalidFieldException();
-            }
-            if (JOhmUtils.isNullOrEmpty(pair.getAttributeValue())) {
-                throw new InvalidFieldException();
-            }
-            nest.cat(attributeName)
-                .cat(pair.getAttributeValue()).next();
-        }
-        Set<String> modelIdStrings = nest.sinter();
+    	Nest nest = new Nest(clazz);
+    	nest.setJedisPool(jedisPool);
+
+    	for(NVField pair : attributes) {
+    		String attributeName;
+    		String referenceAttributeName = null;
+    		if (!JOhmUtils.Validator.isIndexable(pair.getAttributeName())) {
+    			throw new InvalidFieldException();
+    		}
+
+    		try {
+    			Field field = clazz.getDeclaredField(pair.getAttributeName());
+    			field.setAccessible(true);
+    			if (!field.isAnnotationPresent(Indexed.class)) {
+    				throw new InvalidFieldException();
+    			}
+    			if (field.isAnnotationPresent(Reference.class)) {
+    				attributeName = JOhmUtils.getReferenceKeyName(field);
+    				if (pair.getReferenceAttributeName() != null) {
+    					Field referenceField = field.getType().getDeclaredField(pair.getReferenceAttributeName());
+    					referenceField.setAccessible(true);
+    					if (!referenceField.isAnnotationPresent(Indexed.class)) {
+    						throw new InvalidFieldException();
+    					}
+    					referenceAttributeName=pair.getReferenceAttributeName();
+    				}
+    			}
+    			else {
+    				attributeName=pair.getAttributeName();
+    			}
+    		} catch (SecurityException e) {
+    			throw new InvalidFieldException();
+    		} catch (NoSuchFieldException e) {
+    			throw new InvalidFieldException();
+    		}
+    		
+    		if (referenceAttributeName != null){
+    			if (JOhmUtils.isNullOrEmpty(pair.getReferenceAttributeValue())) {
+        			throw new InvalidFieldException();
+        		}
+    			nest.cat(attributeName)
+    			.cat(referenceAttributeName)
+    			.cat(pair.getReferenceAttributeValue()).next();
+    		}else{
+    			if (JOhmUtils.isNullOrEmpty(pair.getAttributeValue())) {
+        			throw new InvalidFieldException();
+        		}
+    			nest.cat(attributeName)
+    			.cat(pair.getAttributeValue()).next();
+    		}
+    	}
+    	Set<String> modelIdStrings = nest.sinter();
 
 
-        if (modelIdStrings != null) {
-            // TODO: Do this lazy
-            results = new ArrayList<Object>();
-            Object indexed = null;
-            for (String modelIdString : modelIdStrings) {
-                indexed = get(clazz, Integer.parseInt(modelIdString));
-                if (indexed != null) {
-                    results.add(indexed);
-                }
-            }
-        }
-        return (List<T>) results;
+    	if (modelIdStrings != null) {
+    		// TODO: Do this lazy
+    		results = new ArrayList<Object>();
+    		Object indexed = null;
+    		for (String modelIdString : modelIdStrings) {
+    			indexed = get(clazz, Integer.parseInt(modelIdString));
+    			if (indexed != null) {
+    				results.add(indexed);
+    			}
+    		}
+    	}
+    	return (List<T>) results;
     }
     
 
@@ -261,29 +279,45 @@ public final class JOhm {
 
                 }
                 if (field.isAnnotationPresent(Reference.class)) {
-                    fieldName = JOhmUtils.getReferenceKeyName(field);
-                    Object child = field.get(model);
-                    if (child != null) {
-                        if (JOhmUtils.getId(child) == null) {
-                            throw new MissingIdException();
-                        }
-                        if (saveChildren) {
-                            save(child, saveChildren); // some more work to do
-                        }
-                        hashedObject.put(fieldName, String.valueOf(JOhmUtils
-                                .getId(child)));
-                    }
+                	fieldName = JOhmUtils.getReferenceKeyName(field);
+                	Object child = field.get(model);
+                	if (child != null) {
+                		if (JOhmUtils.getId(child) == null) {
+                			throw new MissingIdException();
+                		}
+                		if (saveChildren) {
+                			save(child, saveChildren); // some more work to do
+                		}
+                		hashedObject.put(fieldName, String.valueOf(JOhmUtils
+                				.getId(child)));
+                	}
                 }
                 if (field.isAnnotationPresent(Indexed.class)) {
-                    Object fieldValue = field.get(model);
-                    if (fieldValue != null
-                            && field.isAnnotationPresent(Reference.class)) {
-                        fieldValue = JOhmUtils.getId(fieldValue);
-                    }
-                    if (!JOhmUtils.isNullOrEmpty(fieldValue)) {
-                        nest.cat(fieldName).cat(fieldValue).sadd(
-                                String.valueOf(JOhmUtils.getId(model)));
-                    }
+                	Object fieldValue = field.get(model);
+                	if (fieldValue != null
+                			&& field.isAnnotationPresent(Reference.class)) {
+                		fieldValue = JOhmUtils.getId(fieldValue);
+                	}
+                	if (!JOhmUtils.isNullOrEmpty(fieldValue)) {
+                		nest.cat(fieldName).cat(fieldValue).sadd(
+                				String.valueOf(JOhmUtils.getId(model)));
+
+                		if (field.isAnnotationPresent(Reference.class)) {
+                			String childfieldName = null;
+                			Object childModel = field.get(model);
+                			for (Field childField : JOhmUtils.gatherAllFields(childModel.getClass())) {
+                				childField.setAccessible(true);
+                				if (childField.isAnnotationPresent(Attribute.class) && childField.isAnnotationPresent(Indexed.class)) {
+                					childfieldName = childField.getName();
+                					Object childFieldValue = childField.get(childModel);
+                					if (!JOhmUtils.isNullOrEmpty(childFieldValue)) {
+                						nest.cat(fieldName).cat(childfieldName).cat(childFieldValue).sadd(
+                								String.valueOf(JOhmUtils.getId(model)));  
+                					}
+                				}
+                			}
+                		}
+                	}
                 }
                 // always add to the all set, to support getAll
                 nest.cat("all").sadd(String.valueOf(JOhmUtils.getId(model)));
@@ -312,7 +346,139 @@ public final class JOhm {
 
         return (T) model;
     }
+    
+     
+    /**
+     * Save given model to Redis using watch. This does not save all its child
+     * annotated-models. If hierarchical persistence is desirable, use the
+     * overloaded save interface.
+     * 
+     * @param <T>
+     * @param model
+     * @return
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T transactedSave(final Object model) {
+    	final Map<String, String> memberToBeRemovedFromSets = new HashMap<String, String>();
+    	if (!isNew(model)) {
+        	cleanUpForSave(model.getClass(), JOhmUtils.getId(model), memberToBeRemovedFromSets);
+    	}
+    	
+        final Map<String, String> memberToBeAddedFromSets = new HashMap<String, String>();
+    	final Nest nest = initIfNeeded(model);
 
+    	final Map<String, String> hashedObject = new HashMap<String, String>();
+    	Map<RedisArray<Object>, Object[]> pendingArraysToPersist = null;
+    	try {
+    		String fieldName = null;
+    		for (Field field : JOhmUtils.gatherAllFields(model.getClass())) {
+    			field.setAccessible(true);
+    			if (JOhmUtils.detectJOhmCollection(field)
+    					|| field.isAnnotationPresent(Id.class)) {
+    				if (field.isAnnotationPresent(Id.class)) {
+    					JOhmUtils.Validator.checkValidIdType(field);
+    				}
+    				continue;
+    			}
+    			if (field.isAnnotationPresent(Array.class)) {
+    				Object[] backingArray = (Object[]) field.get(model);
+    				int actualLength = backingArray == null ? 0
+    						: backingArray.length;
+    				JOhmUtils.Validator.checkValidArrayBounds(field,
+    						actualLength);
+    				Array annotation = field.getAnnotation(Array.class);
+    				RedisArray<Object> redisArray = new RedisArray<Object>(
+    						annotation.length(), annotation.of(), nest, field,
+    						model);
+    				if (pendingArraysToPersist == null) {
+    					pendingArraysToPersist = new LinkedHashMap<RedisArray<Object>, Object[]>();
+    				}
+    				pendingArraysToPersist.put(redisArray, backingArray);
+    			}
+    			JOhmUtils.Validator.checkAttributeReferenceIndexRules(field);
+    			if (field.isAnnotationPresent(Attribute.class)) {
+    				fieldName = field.getName();
+    				Object fieldValueObject = field.get(model);
+    				if (fieldValueObject != null) {
+    					hashedObject
+    					.put(fieldName, fieldValueObject.toString());
+    				}
+
+    			}
+    			if (field.isAnnotationPresent(Reference.class)) {
+    				fieldName = JOhmUtils.getReferenceKeyName(field);
+    				Object child = field.get(model);
+    				if (child != null) {
+    					if (JOhmUtils.getId(child) == null) {
+    						throw new MissingIdException();
+    					}
+    					hashedObject.put(fieldName, String.valueOf(JOhmUtils
+    							.getId(child)));
+    				}
+    			}
+    			if (field.isAnnotationPresent(Indexed.class)) {
+    				Object fieldValue = field.get(model);
+    				if (fieldValue != null
+    						&& field.isAnnotationPresent(Reference.class)) {
+    					fieldValue = JOhmUtils.getId(fieldValue);
+    				}
+    				if (!JOhmUtils.isNullOrEmpty(fieldValue)) {
+    					memberToBeAddedFromSets.put(nest.cat(fieldName).cat(fieldValue).key(), String.valueOf(JOhmUtils.getId(model)));
+
+    					if (field.isAnnotationPresent(Reference.class)) {
+    						String childfieldName = null;
+    						Object childModel = field.get(model);
+    						for (Field childField : JOhmUtils.gatherAllFields(childModel.getClass())) {
+    							childField.setAccessible(true);
+    							if (childField.isAnnotationPresent(Attribute.class) && childField.isAnnotationPresent(Indexed.class)) {
+    								childfieldName = childField.getName();
+    								Object childFieldValue = childField.get(childModel);
+    								if (childFieldValue != null && !JOhmUtils.isNullOrEmpty(childFieldValue)) {
+    									memberToBeAddedFromSets.put(nest.cat(fieldName).cat(childfieldName).cat(childFieldValue).key(), String.valueOf(JOhmUtils.getId(model)));                      			
+    								}
+    							}
+    						}
+    					}
+    				}
+    			}
+    			// always add to the all set, to support getAll
+                memberToBeAddedFromSets.put("all", String.valueOf(JOhmUtils.getId(model)));
+    		}
+    	} catch (IllegalArgumentException e) {
+    		 throw new JOhmException(e,
+                    JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
+    	} catch (IllegalAccessException e) {
+    		 throw new JOhmException(e,
+                    JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
+    	}
+
+    	List<Object> response = nest.multiWithWatch(new TransactionBlock() {
+    		public void execute() throws JedisException {
+    		 	for (String key: memberToBeRemovedFromSets.keySet()) {
+            		String memberOfSet = memberToBeRemovedFromSets.get(key);
+            		srem(key, memberOfSet);
+            	}
+            	for (String key: memberToBeAddedFromSets.keySet()) {
+            		String memberOfSet = memberToBeAddedFromSets.get(key);
+            		sadd(key, memberOfSet);
+            	}
+    			del(nest.cat(JOhmUtils.getId(model)).key());
+    			hmset(nest.cat(JOhmUtils.getId(model)).key(), hashedObject);
+    		}
+    	}, nest.cat(JOhmUtils.getId(model)).key());
+
+    	if (response != null) {
+    		if (pendingArraysToPersist != null && pendingArraysToPersist.size() > 0) {
+    			for (Map.Entry<RedisArray<Object>, Object[]> arrayEntry : pendingArraysToPersist
+    					.entrySet()) {
+    				arrayEntry.getKey().write(arrayEntry.getValue());
+    			}
+    		}
+    	}
+
+    	return (T) model;
+    }
+    
     /**
      * Delete Redis-persisted model as represented by the given model Class type
      * and id.
@@ -357,8 +523,33 @@ public final class JOhm {
                             fieldValue = JOhmUtils.getId(fieldValue);
                         }
                         if (!JOhmUtils.isNullOrEmpty(fieldValue)) {
-                            nest.cat(field.getName()).cat(fieldValue).srem(
-                                    String.valueOf(id));
+                        	nest.cat(field.getName()).cat(fieldValue).srem(
+                        			String.valueOf(id));
+
+                        	if (field.isAnnotationPresent(Reference.class)) {
+                        		try {
+                        			String childfieldName = null;
+                        			Object childModel = field.get(persistedModel);
+                        			for (Field childField : JOhmUtils.gatherAllFields(childModel.getClass())) {
+                        				childField.setAccessible(true);
+                        				if (childField.isAnnotationPresent(Attribute.class) && childField.isAnnotationPresent(Indexed.class)) {
+                        					childfieldName = childField.getName();
+                        					Object childFieldValue = childField.get(childModel);
+                        					if (childFieldValue != null && !JOhmUtils.isNullOrEmpty(childFieldValue)) {
+                        						nest.cat(field.getName()).cat(childfieldName).cat(childFieldValue).srem(
+                        								String.valueOf(JOhmUtils.getId(persistedModel)));                        			
+                        					}
+                        				}
+                        			}
+                        		} catch (IllegalArgumentException e) {
+                        			throw new JOhmException(
+                        					e,
+                        					JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
+                        		} catch (IllegalAccessException e) {
+                        			throw new JOhmException(e,
+                        					JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
+                        		}
+                        	}
                         }
                     }
                 }
@@ -398,6 +589,64 @@ public final class JOhm {
             deleted = nest.cat(id).del() == 1;
         }
         return deleted;
+    }
+    
+    @SuppressWarnings("unchecked")
+    private static Map<String, String> cleanUpForSave(Class<?> clazz, long id, Map<String, String> memberToBeRemovedFromSet) {
+    	JOhmUtils.Validator.checkValidModelClazz(clazz);
+    	Object persistedModel = get(clazz, id);
+    	if (persistedModel != null) {
+    		Nest nest = new Nest(persistedModel);
+    		nest.setJedisPool(jedisPool);
+    		try{
+    			for (Field field : JOhmUtils.gatherAllFields(clazz)) {
+    				if (field.isAnnotationPresent(Indexed.class)) {
+    					field.setAccessible(true);
+    					Object fieldValue = null;
+    					try {
+    						fieldValue = field.get(persistedModel);
+    					} catch (IllegalArgumentException e) {
+    						 throw new JOhmException(
+                                     e,
+                                     JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
+    					} catch (IllegalAccessException e) {
+    						throw new JOhmException(e,
+                                    JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
+    					}
+    					if (fieldValue != null
+    							&& field.isAnnotationPresent(Reference.class)) {
+    						fieldValue = JOhmUtils.getId(fieldValue);
+    					}
+    					if (!JOhmUtils.isNullOrEmpty(fieldValue)) {
+    						memberToBeRemovedFromSet.put(nest.cat(field.getName()).cat(fieldValue).key(), String.valueOf(id));
+
+    						if (field.isAnnotationPresent(Reference.class)) {
+    							String childfieldName = null;
+    							Object childModel = field.get(persistedModel);
+    							for (Field childField : JOhmUtils.gatherAllFields(childModel.getClass())) {
+    								childField.setAccessible(true);
+    								if (childField.isAnnotationPresent(Attribute.class) && childField.isAnnotationPresent(Indexed.class)) {
+    									childfieldName = childField.getName();
+    									Object childFieldValue = childField.get(childModel);
+    									if (!JOhmUtils.isNullOrEmpty(childFieldValue)) {
+    										memberToBeRemovedFromSet.put(nest.cat(field.getName()).cat(childfieldName).cat(childFieldValue).key(), String.valueOf(JOhmUtils.getId(persistedModel)));
+    									}
+    								}
+    							}
+    						}
+    					}
+    				}
+    			}
+    		} catch (IllegalArgumentException e) {
+    			 throw new JOhmException(
+                         e,
+                         JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
+    		} catch (IllegalAccessException e) {
+    			throw new JOhmException(e,
+                        JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
+    		}
+    	}
+        return memberToBeRemovedFromSet;
     }
 
     /**

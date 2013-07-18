@@ -6,24 +6,24 @@ import redis.clients.johm.Indexed;
 import redis.clients.johm.Model;
 
 @Model
-public class Country {
+public class Address {
     @Id
     @TestAnnotation
     private Long id;
     @Attribute
     @Indexed
-    private String name;
+    private String streetName;
 
     public Long getId() {
         return id;
     }
 
-    public String getName() {
-        return name;
+    public String getStreetName() {
+        return streetName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setStreetName(String streetName) {
+        this.streetName = streetName;
     }
 
     @Override
@@ -31,7 +31,7 @@ public class Country {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((id == null) ? 0 : id.hashCode());
-        result = prime * result + ((name == null) ? 0 : name.hashCode());
+        result = prime * result + ((streetName == null) ? 0 : streetName.hashCode());
         return result;
     }
 
@@ -43,10 +43,10 @@ public class Country {
         if (obj == null) {
             return false;
         }
-        if (!(obj instanceof Country)) {
+        if (!(obj instanceof Address)) {
             return false;
         }
-        Country other = (Country) obj;
+        Address other = (Address) obj;
         if (id == null) {
             if (other.id != null) {
                 return false;
@@ -54,11 +54,11 @@ public class Country {
         } else if (!id.equals(other.id)) {
             return false;
         }
-        if (name == null) {
-            if (other.name != null) {
+        if (streetName == null) {
+            if (other.streetName != null) {
                 return false;
             }
-        } else if (!name.equals(other.name)) {
+        } else if (!streetName.equals(other.streetName)) {
             return false;
         }
         return true;

@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import redis.clients.johm.models.Address;
 import redis.clients.johm.models.Country;
 import redis.clients.johm.models.Item;
 import redis.clients.johm.models.User;
@@ -306,10 +307,20 @@ public class SearchTest extends JOhmTestBase {
 
     @Test
     public void canDoMultiFind() {
+        Address someWhereAddress = new Address();
+    	someWhereAddress.setStreetName("xyz");
+    	JOhm.save(someWhereAddress);
+    	
+    	Country somewhere = new Country();
+        somewhere.setName("somewhere");
+        JOhm.save(somewhere);
+    	
         User user=new User();
         
         user.setAge(88);
         user.setName("b");
+        user.setAddress(someWhereAddress);
+    	user.setCountry(somewhere);
         JOhm.save(user);
         
         user=new User();
@@ -337,7 +348,9 @@ public class SearchTest extends JOhmTestBase {
         assertEquals(88,gotUsers.get(0).getAge());
         assertEquals("b",gotUsers.get(0).getName());
         
+        gotUsers=JOhm.find(User.class,new NVField("age", 88),new NVField("country","name", "somewhere"), new NVField("address","streetName", "xyz"));
+    	assertEquals(1,gotUsers.size());
+    	assertEquals(88,gotUsers.get(0).getAge());
+    	assertEquals(somewhere,gotUsers.get(0).getCountry());
     }
-    
-    
 }

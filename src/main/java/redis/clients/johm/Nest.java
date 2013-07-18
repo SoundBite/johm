@@ -11,7 +11,6 @@ import redis.clients.jedis.TransactionBlock;
 
 public class Nest<T> {
     private static final String COLON = ":";
-    private static final String SPACE = " ";
     private StringBuilder sb;
     private String key;
     private ArrayList<String> keys;
@@ -115,12 +114,21 @@ public class Nest<T> {
         returnResource(jedis);
         return multi;
     }
+    
+    public List<Object> multiWithWatch(TransactionBlock transaction, String...keys) {
+    	Jedis jedis = getResource();
+    	List<Object> multi = null;
+    	jedis.watch(keys);
+    	multi = jedis.multi(transaction);
+    	returnResource(jedis);	
+    	return multi;
+    }
 
     public Long del() {
-        Jedis jedis = getResource();
-        Long del = jedis.del(key());
-        returnResource(jedis);
-        return del;
+    	Jedis jedis = getResource();
+    	Long del = jedis.del(key());
+    	returnResource(jedis);
+    	return del;
     }
 
     public Boolean exists() {

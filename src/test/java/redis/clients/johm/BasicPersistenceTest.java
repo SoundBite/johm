@@ -1,5 +1,6 @@
 package redis.clients.johm;
 
+import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
@@ -23,6 +24,62 @@ public class BasicPersistenceTest extends JOhmTestBase {
         assertNull(savedUser.getRoom());
         assertEquals(user.getId(), savedUser.getId());
         assertEquals(user.getAge(), savedUser.getAge());
+    }
+
+    @Test
+    public void transactedSave() {
+    	User user = new User();
+    	user.setName("foo");
+    	user.setRoom("vroom");
+    	JOhm.save(user);
+
+    	assertNotNull(user);
+
+    	List<User> users =  JOhm.find(User.class, new NVField("name","foo"));
+    	User returnedUser = users.get(0);
+    	returnedUser.setName("foo1");
+    	JOhm.transactedSave(returnedUser);
+
+    	User savedUser = JOhm.get(User.class, user.getId());
+    	assertEquals(returnedUser.getName(), savedUser.getName());
+    	assertNull(savedUser.getRoom());
+    	assertEquals(returnedUser.getId(), savedUser.getId());
+    	assertEquals(returnedUser.getAge(), savedUser.getAge());
+    }
+
+    @Test
+    public void transactedSaveWithReferences() {
+    	Country somewhere = new Country();
+    	somewhere.setName("somewhere");
+    	JOhm.save(somewhere);
+
+    	User user = new User();
+    	user.setName("foo");
+    	user.setRoom("vroom");
+    	user.setCountry(somewhere);
+    	JOhm.save(user);
+
+    	assertNotNull(user);
+
+    	List<User> users =  JOhm.find(User.class, new NVField("name","foo"));
+    	assertEquals(1, users.size());
+    	User returnedUser = users.get(0);
+    	returnedUser.setName("foo1");
+    	JOhm.transactedSave(returnedUser);
+
+    	User savedUser = JOhm.get(User.class, user.getId());
+    	assertEquals(returnedUser.getName(), savedUser.getName());
+    	assertNull(savedUser.getRoom());
+    	assertEquals(returnedUser.getId(), savedUser.getId());
+    	assertEquals(returnedUser.getAge(), savedUser.getAge());
+
+    	List<User> gotUsers=JOhm.find(User.class,new NVField("name", "foo1"),new NVField("country","name", "somewhere"));
+    	assertEquals(1, gotUsers.size());
+    	returnedUser = users.get(0);
+    	assertEquals(returnedUser.getName(), savedUser.getName());
+    	assertNull(savedUser.getRoom());
+    	assertEquals(returnedUser.getId(), savedUser.getId());
+    	assertEquals(returnedUser.getAge(), savedUser.getAge());
     }
 
     @Test

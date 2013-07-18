@@ -171,9 +171,13 @@ public final class JOhmUtils {
         if (obj == null) {
             return true;
         }
-        if (obj.getClass().equals(Collection.class)) {
+          if (obj.getClass().getName().equals(RedisList.class.getName())
+        		|| obj.getClass().getName().equals(RedisSet.class.getName())
+        		|| obj.getClass().getName().equals(RedisSortedSet.class.getName())) {
             return ((Collection) obj).size() == 0;
-        } else {
+        } else if (obj.getClass().getName().equals(RedisMap.class.getName())) {
+        	return ((Map) obj).size() == 0;
+        }else {
             if (obj.toString().trim().length() == 0) {
                 return true;
             }
@@ -182,7 +186,7 @@ public final class JOhmUtils {
         return false;
     }
 
-    static List<Field> gatherAllFields(Class<?> clazz) {
+    public static List<Field> gatherAllFields(Class<?> clazz) {
         List<Field> allFields = new ArrayList<Field>();
         for (Field field : clazz.getDeclaredFields()) {
             allFields.add(field);

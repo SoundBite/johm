@@ -32,6 +32,9 @@ public class User {
     private char initial;
     @Reference
     @Indexed
+    private Address address;
+    @Reference
+    @Indexed
     private Country country;
     @CollectionList(of = Item.class)
     @Indexed
@@ -82,7 +85,15 @@ public class User {
     }
 
     public void setCountry(Country country) {
-        this.country = country;
+    	this.country = country;
+    }
+
+    public Address getAddress() {
+    	return address;
+    }
+
+    public void setAddress(Address address) {
+    	this.address = address;
     }
 
     public String getRoom() {

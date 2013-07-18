@@ -1,6 +1,7 @@
 package redis.clients.johm;
 
 import java.util.Arrays;
+import java.util.List;
 
 import org.junit.Test;
 
@@ -97,84 +98,90 @@ public class CollectionsDataTypeTest extends JOhmTestBase {
 
     @Test
     public void testListDataTypeCombinations() {
-        Distribution distro = new Distribution();
-        distro.setDistroScope("World");
-        JOhm.save(distro);
+    	Distribution distro = new Distribution();
+    	distro.setDistroScope("World");
+    	JOhm.save(distro);
 
-        Country country1 = new Country();
-        country1.setName("FriendlyCountry");
-        JOhm.save(country1);
-        Country country2 = new Country();
-        country2.setName("AngryCountry");
-        JOhm.save(country2);
+    	Country country1 = new Country();
+    	country1.setName("FriendlyCountry");
+    	JOhm.save(country1);
+    	Country country2 = new Country();
+    	country2.setName("AngryCountry");
+    	JOhm.save(country2);
 
-        distro.getCountriesOfWorld().add(country1);
-        distro.getCountriesOfWorld().add(country2);
+    	distro.getCountriesOfWorld().add(country1);
+    	distro.getCountriesOfWorld().add(country2);
 
-        Distribution savedDistro = JOhm.get(Distribution.class, distro.getId());
-        assertEquals(2, savedDistro.getCountriesOfWorld().size());
+    	Distribution savedDistro = JOhm.get(Distribution.class, distro.getId());
+    	assertEquals(2, savedDistro.getCountriesOfWorld().size());
 
-        assertEquals(country1, savedDistro.getCountriesOfWorld().get(0));
-        assertEquals(country2, savedDistro.getCountriesOfWorld().get(1));
+    	assertEquals(country1, savedDistro.getCountriesOfWorld().get(0));
+    	assertEquals(country2, savedDistro.getCountriesOfWorld().get(1));
 
-        savedDistro.getCountriesOfWorld().remove(0);
-        savedDistro = JOhm.get(Distribution.class, distro.getId());
-        assertEquals(1, savedDistro.getCountriesOfWorld().size());
-        assertEquals(country2, savedDistro.getCountriesOfWorld().get(0));
+    	savedDistro.getCountriesOfWorld().remove(0);
+    	savedDistro = JOhm.get(Distribution.class, distro.getId());
+    	assertEquals(1, savedDistro.getCountriesOfWorld().size());
+    	assertEquals(country2, savedDistro.getCountriesOfWorld().get(0));
 
-        savedDistro.getCountriesOfWorld().remove(0);
-        savedDistro = JOhm.get(Distribution.class, distro.getId());
-        assertEquals(0, savedDistro.getCountriesOfWorld().size());
+    	savedDistro.getCountriesOfWorld().remove(0);
+    	savedDistro = JOhm.get(Distribution.class, distro.getId());
+    	assertEquals(0, savedDistro.getCountriesOfWorld().size());
 
-        distro.getCountrySizes().add(88888L);
-        distro.getCountrySizes().add(99999L);
-        savedDistro = JOhm.get(Distribution.class, distro.getId());
-        assertEquals(2, savedDistro.getCountrySizes().size());
+    	distro.getCountrySizes().add(88888L);
+    	distro.getCountrySizes().add(99999L);
+    	savedDistro = JOhm.get(Distribution.class, distro.getId());
+    	assertEquals(2, savedDistro.getCountrySizes().size());
 
-        assertEquals(0, 88888L, savedDistro.getCountrySizes().get(0));
-        assertEquals(0, 99999L, savedDistro.getCountrySizes().get(1));
+    	assertEquals(0, 88888L, savedDistro.getCountrySizes().get(0));
+    	assertEquals(0, 99999L, savedDistro.getCountrySizes().get(1));
 
-        savedDistro.getCountrySizes().clear();
-        savedDistro = JOhm.get(Distribution.class, distro.getId());
-        assertEquals(0, savedDistro.getCountrySizes().size());
+    	savedDistro.getCountrySizes().clear();
+    	savedDistro = JOhm.get(Distribution.class, distro.getId());
+    	assertEquals(0, savedDistro.getCountrySizes().size());
     }
 
     @Test
     public void testSetDataTypeCombinations() {
-        Distribution distro = new Distribution();
-        distro.setDistroScope("World");
-        JOhm.save(distro);
+    	Distribution distro = new Distribution();
+    	distro.setDistroScope("World");
+    	JOhm.save(distro);
 
-        Country country1 = new Country();
-        country1.setName("United States");
-        JOhm.save(country1);
-        Country country2 = new Country();
-        country2.setName("Canada");
-        JOhm.save(country2);
-        Country country3 = new Country();
-        country3.setName("Mexico");
-        JOhm.save(country3);
+    	Country country1 = new Country();
+    	country1.setName("United States");
+    	JOhm.save(country1);
+    	Country country2 = new Country();
+    	country2.setName("Canada");
+    	JOhm.save(country2);
+    	Country country3 = new Country();
+    	country3.setName("Mexico");
+    	JOhm.save(country3);
 
-        distro.getNorthAmericanCountries().add(country1);
-        distro.getNorthAmericanCountries().add(country2);
-        distro.getNorthAmericanCountries().add(country3);
+    	distro.getNorthAmericanCountries().add(country1);
+    	distro.getNorthAmericanCountries().add(country2);
+    	distro.getNorthAmericanCountries().add(country3);
 
-        Distribution savedDistro = JOhm.get(Distribution.class, distro.getId());
-        assertEquals(3, savedDistro.getNorthAmericanCountries().size());
+    	Distribution savedDistro = JOhm.get(Distribution.class, distro.getId());
+    	assertEquals(3, savedDistro.getNorthAmericanCountries().size());
 
-        assertTrue(savedDistro.getNorthAmericanCountries().contains(country1));
-        assertTrue(savedDistro.getNorthAmericanCountries().contains(country2));
-        assertTrue(savedDistro.getNorthAmericanCountries().contains(country3));
+    	assertTrue(savedDistro.getNorthAmericanCountries().contains(country1));
+    	assertTrue(savedDistro.getNorthAmericanCountries().contains(country2));
+    	assertTrue(savedDistro.getNorthAmericanCountries().contains(country3));
 
-        savedDistro.getNorthAmericanCountries().remove(country1);
-        savedDistro = JOhm.get(Distribution.class, distro.getId());
-        assertEquals(2, savedDistro.getNorthAmericanCountries().size());
-        assertTrue(savedDistro.getNorthAmericanCountries().contains(country2));
-        assertTrue(savedDistro.getNorthAmericanCountries().contains(country3));
+    	List<Country> countries = JOhm.find(Country.class, new NVField("name", "Canada"));
+    	assertEquals(1, countries.size());
+    	Long countryId = countries.get(0).getId();
+    	List<Distribution> savedDistro1 = JOhm.find(Distribution.class, new NVField("northAmericanCountries", countryId));
+    	assertEquals(1, savedDistro1.size());
 
-        savedDistro.getNorthAmericanCountries().clear();
-        savedDistro = JOhm.get(Distribution.class, distro.getId());
-        assertEquals(0, savedDistro.getNorthAmericanCountries().size());
+    	savedDistro.getNorthAmericanCountries().remove(country1);
+    	savedDistro = JOhm.get(Distribution.class, distro.getId());
+    	assertEquals(2, savedDistro.getNorthAmericanCountries().size());
+    	assertTrue(savedDistro.getNorthAmericanCountries().contains(country2));
+    	assertTrue(savedDistro.getNorthAmericanCountries().contains(country3));
+
+    	savedDistro.getNorthAmericanCountries().clear();
+    	savedDistro = JOhm.get(Distribution.class, distro.getId());
+    	assertEquals(0, savedDistro.getNorthAmericanCountries().size());
     }
 
     @Test
