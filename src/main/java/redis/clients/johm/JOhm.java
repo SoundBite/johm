@@ -319,9 +319,10 @@ public final class JOhm {
                 		}
                 	}
                 }
-                // always add to the all set, to support getAll
-                nest.cat("all").sadd(String.valueOf(JOhmUtils.getId(model)));
             }
+            
+            // always add to the all set, to support getAll
+            nest.cat("all").sadd(String.valueOf(JOhmUtils.getId(model)));
         } catch (IllegalArgumentException e) {
             throw new JOhmException(e,
                     JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
@@ -441,9 +442,10 @@ public final class JOhm {
     					}
     				}
     			}
-    			// always add to the all set, to support getAll
-                memberToBeAddedFromSets.put("all", String.valueOf(JOhmUtils.getId(model)));
     		}
+    		
+   			// always add to the all set, to support getAll
+            memberToBeAddedFromSets.put("all", String.valueOf(JOhmUtils.getId(model)));
     	} catch (IllegalArgumentException e) {
     		 throw new JOhmException(e,
                     JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
