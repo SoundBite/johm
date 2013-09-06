@@ -4,6 +4,7 @@ import redis.clients.johm.Attribute;
 import redis.clients.johm.Id;
 import redis.clients.johm.Indexed;
 import redis.clients.johm.Model;
+import redis.clients.johm.Comparable;
 
 @Model
 public class Address {
@@ -14,6 +15,11 @@ public class Address {
     @Indexed
     private String streetName;
 
+    @Attribute
+    @Indexed
+    @Comparable
+    private Integer houseNumber;
+    
     public Long getId() {
         return id;
     }
@@ -26,7 +32,15 @@ public class Address {
         this.streetName = streetName;
     }
 
-    @Override
+    public int getHouseNumber() {
+		return houseNumber;
+	}
+
+	public void setHouseNumber(int houseNumber) {
+		this.houseNumber = houseNumber;
+	}
+
+	@Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
@@ -59,6 +73,13 @@ public class Address {
                 return false;
             }
         } else if (!streetName.equals(other.streetName)) {
+            return false;
+        }
+        if (houseNumber == null) {
+            if (other.houseNumber != null) {
+                return false;
+            }
+        } else if (!houseNumber.equals(other.houseNumber)) {
             return false;
         }
         return true;

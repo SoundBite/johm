@@ -167,10 +167,10 @@ public class CollectionsDataTypeTest extends JOhmTestBase {
     	assertTrue(savedDistro.getNorthAmericanCountries().contains(country2));
     	assertTrue(savedDistro.getNorthAmericanCountries().contains(country3));
 
-    	List<Country> countries = JOhm.find(Country.class, new NVField("name", "Canada"));
+    	List<Country> countries = JOhm.find(Country.class, false, new NVField("name", "Canada"));
     	assertEquals(1, countries.size());
     	Long countryId = countries.get(0).getId();
-    	List<Distribution> savedDistro1 = JOhm.find(Distribution.class, new NVField("northAmericanCountries", countryId));
+    	List<Distribution> savedDistro1 = JOhm.find(Distribution.class, false, new NVField("northAmericanCountries", countryId));
     	assertEquals(1, savedDistro1.size());
 
     	savedDistro.getNorthAmericanCountries().remove(country1);

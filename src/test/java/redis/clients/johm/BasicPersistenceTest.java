@@ -31,11 +31,12 @@ public class BasicPersistenceTest extends JOhmTestBase {
     	User user = new User();
     	user.setName("foo");
     	user.setRoom("vroom");
+    	user.setAge(10);
     	JOhm.save(user);
 
     	assertNotNull(user);
 
-    	List<User> users =  JOhm.find(User.class, new NVField("name","foo"));
+    	List<User> users =  JOhm.find(User.class, false, new NVField("name","foo"));
     	User returnedUser = users.get(0);
     	returnedUser.setName("foo1");
     	JOhm.transactedSave(returnedUser);
@@ -61,7 +62,7 @@ public class BasicPersistenceTest extends JOhmTestBase {
 
     	assertNotNull(user);
 
-    	List<User> users =  JOhm.find(User.class, new NVField("name","foo"));
+    	List<User> users =  JOhm.find(User.class, false, new NVField("name","foo"));
     	assertEquals(1, users.size());
     	User returnedUser = users.get(0);
     	returnedUser.setName("foo1");
@@ -73,7 +74,7 @@ public class BasicPersistenceTest extends JOhmTestBase {
     	assertEquals(returnedUser.getId(), savedUser.getId());
     	assertEquals(returnedUser.getAge(), savedUser.getAge());
 
-    	List<User> gotUsers=JOhm.find(User.class,new NVField("name", "foo1"),new NVField("country","name", "somewhere"));
+    	List<User> gotUsers=JOhm.find(User.class,false,new NVField("name", "foo1"), new NVField("country","name", "somewhere"));
     	assertEquals(1, gotUsers.size());
     	returnedUser = users.get(0);
     	assertEquals(returnedUser.getName(), savedUser.getName());

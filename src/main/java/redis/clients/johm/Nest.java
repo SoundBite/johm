@@ -1,6 +1,7 @@
 package redis.clients.johm;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -8,6 +9,7 @@ import java.util.Set;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.TransactionBlock;
+import redis.clients.jedis.ZParams;
 
 public class Nest<T> {
     private static final String COLON = ":";
@@ -51,6 +53,26 @@ public class Nest<T> {
     public List<String> keys() {
         return keys;
     }
+    
+    public String combineKeys() {
+    	if (keys == null){
+    		return null;
+    	}
+    	StringBuilder combinedKey = new StringBuilder();
+    	List<String> newListOfKeys = new ArrayList<String>(keys);
+    	Collections.sort(newListOfKeys);
+    	for (String key:newListOfKeys) {
+    		combinedKey.append(key);
+    		combinedKey.append(COLON);
+    	}
+    	
+    	String combinedKeyStr = null;
+    	if (combinedKey.length() > 0) {
+    		combinedKeyStr = combinedKey.substring(0, combinedKey.lastIndexOf(COLON));
+    	}
+    	return combinedKeyStr.toString();
+    }
+    
     private void prefix() {
         if (sb == null) {
             sb = new StringBuilder();
@@ -79,6 +101,7 @@ public class Nest<T> {
         sb.append(COLON);
         return this;
     }
+    
     public Nest<T> next() {
         if(keys==null) {
             keys=new java.util.ArrayList<String>();
@@ -204,17 +227,24 @@ public class Nest<T> {
     }
 
     public Set<String> sinter() {
-        Jedis jedis = getResource();
-        Set<String> members = jedis.sinter((String[])keys.toArray(new String[0]));
-        returnResource(jedis);
-        return members;
+    	Jedis jedis = getResource();
+    	Set<String> members = jedis.sinter((String[])keys.toArray(new String[0]));
+    	returnResource(jedis);
+    	return members;
     }
+
+    public void sinterstore(final String dstkey) {
+    	Jedis jedis = getResource();
+    	jedis.sinterstore(dstkey, (String[])keys.toArray(new String[0]));
+    	returnResource(jedis);
+    }
+
     // Redis List Operations
     public Long rpush(String string) {
-        Jedis jedis = getResource();
-        Long rpush = jedis.rpush(key(), string);
-        returnResource(jedis);
-        return rpush;
+    	Jedis jedis = getResource();
+    	Long rpush = jedis.rpush(key(), string);
+    	returnResource(jedis);
+    	return rpush;
     }
 
     public String lset(int index, String value) {
@@ -259,12 +289,46 @@ public class Nest<T> {
         returnResource(jedis);
         return zrange;
     }
+    
+    public Set<String> zrangebyscore(double min, double max) {
+        Jedis jedis = getResource();
+        Set<String> zrange = jedis.zrangeByScore(key(), min, max);
+        returnResource(jedis);
+        return zrange;
+    }
+    
+    public Set<String> zrangebyscore(String min, String max) {
+        Jedis jedis = getResource();
+        Set<String> zrange = jedis.zrangeByScore(key(), min, max);
+        returnResource(jedis);
+        return zrange;
+    }
 
     public Long zadd(float score, String member) {
         Jedis jedis = getResource();
         Long zadd = jedis.zadd(key(), score, member);
         returnResource(jedis);
         return zadd;
+    }
+    
+    public Long zadd(double score, String member) {
+    	Jedis jedis = getResource();
+    	Long zadd = jedis.zadd(key(), score, member);
+    	returnResource(jedis);
+    	return zadd;
+    }
+
+    public void zinterstore(final String dstkey, ZParams params){
+    	Jedis jedis = getResource();
+    	jedis.zinterstore(dstkey, params, (String[])keys.toArray(new String[0]));
+    	returnResource(jedis);
+    }
+
+    public Long zrem(String member) {
+    	Jedis jedis = getResource();
+    	Long zrem = jedis.zrem(key(), member);
+    	returnResource(jedis);
+    	return zrem;
     }
 
     public Long zcard() {

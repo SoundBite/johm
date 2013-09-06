@@ -14,6 +14,7 @@ import redis.clients.johm.Id;
 import redis.clients.johm.Indexed;
 import redis.clients.johm.Model;
 import redis.clients.johm.Reference;
+import redis.clients.johm.Comparable;
 
 @Model
 public class User {
@@ -25,8 +26,11 @@ public class User {
     private String room;
     @Attribute
     @Indexed
+    @Comparable
     private int age;
     @Attribute
+    @Indexed
+    @Comparable
     private float salary;
     @Attribute
     private char initial;
@@ -36,6 +40,7 @@ public class User {
     @Reference
     @Indexed
     private Country country;
+  
     @CollectionList(of = Item.class)
     @Indexed
     private List<Item> likes;
@@ -79,7 +84,7 @@ public class User {
     public Item[] getThreeLatestPurchases() {
         return threeLatestPurchases;
     }
-
+    
     public Country getCountry() {
         return country;
     }

@@ -295,6 +295,20 @@ public final class JOhmUtils {
                         JOhmExceptionMeta.UNSUPPORTED_JOHM_ATTRIBUTE);
             }
         }
+        
+        static boolean checkValidRangeIndexedAttribute(final Field field) {
+        	Class<?> type = field.getType();
+        	if ((type.equals(Integer.class) || type.equals(int.class)
+                    || type.equals(Float.class) || type.equals(float.class)
+                    || type.equals(Double.class) || type.equals(double.class)
+                    || type.equals(Long.class) || type.equals(long.class)
+                    || type.equals(BigDecimal.class)
+                    || type.equals(BigInteger.class))) {
+        		return true;
+            } 
+        	
+        	return false;
+        }
 
         static void checkValidReference(final Field field) {
             if (!field.getType().getClass().isInstance(Model.class)) {
@@ -354,7 +368,7 @@ public final class JOhmUtils {
                         JOhmExceptionMeta.INVALID_MODEL_ID_TYPE);
             }
         }
-
+        
         static boolean isIndexable(final String attributeName) {
             // Prevent null/empty keys and null/empty values
             if (!isNullOrEmpty(attributeName)) {
