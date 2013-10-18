@@ -3,6 +3,7 @@ package redis.clients.johm;
 import java.util.List;
 import java.util.Set;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import redis.clients.johm.models.Country;
@@ -26,6 +27,7 @@ public class BasicPersistenceTest extends JOhmTestBase {
         assertEquals(user.getAge(), savedUser.getAge());
     }
 
+    @Ignore
     @Test
     public void transactedSave() {
     	User user = new User();
@@ -48,6 +50,7 @@ public class BasicPersistenceTest extends JOhmTestBase {
     	assertEquals(returnedUser.getAge(), savedUser.getAge());
     }
 
+    @Ignore
     @Test
     public void transactedSaveWithReferences() {
     	Country somewhere = new Country();

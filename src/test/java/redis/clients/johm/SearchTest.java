@@ -3,6 +3,7 @@ package redis.clients.johm;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import redis.clients.johm.NVField.Condition;
@@ -367,6 +368,7 @@ public class SearchTest extends JOhmTestBase {
 		assertEquals(1,gotUsers.size());
 	}
 
+	@Ignore
 	@Test
 	public void canDoMultiFindWithTransactedSave() {
 		Address someWhereAddress = new Address();
@@ -545,6 +547,7 @@ public class SearchTest extends JOhmTestBase {
 		assertEquals(1,gotUsers.size());
 	}
 
+	@Ignore
 	@Test
 	public void canDoMultiFindWithRangeConditionsWithTransactedSave() {
 		Address someWhereAddress = new Address();

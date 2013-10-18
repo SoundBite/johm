@@ -99,11 +99,15 @@ public final class JOhm {
     public static <T> List<T> find(Class<?> clazz, String attributeName,
             Object attributeValue) {
         JOhmUtils.Validator.checkValidModelClazz(clazz);
+        final String HASH_TAG = getHashTag(clazz);
         List<Object> results = null;
         if (!JOhmUtils.Validator.isIndexable(attributeName)) {
             throw new InvalidFieldException();
         }
 
+        Set<String> modelIdStrings = null;
+        Nest nest = new Nest(clazz);
+        nest.setJedisPool(jedisPool);
         try {
             Field field = clazz.getDeclaredField(attributeName);
             field.setAccessible(true);
@@ -113,6 +117,13 @@ public final class JOhm {
             if (field.isAnnotationPresent(Reference.class)) {
                 attributeName = JOhmUtils.getReferenceKeyName(field);
             }
+            if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+            	modelIdStrings = nest.cat(HASH_TAG).cat(attributeName)
+            	.cat(attributeValue).smembers();
+            }else{
+            	modelIdStrings = nest.cat(attributeName)
+            	.cat(attributeValue).smembers();
+            }
         } catch (SecurityException e) {
             throw new InvalidFieldException();
         } catch (NoSuchFieldException e) {
@@ -121,10 +132,6 @@ public final class JOhm {
         if (JOhmUtils.isNullOrEmpty(attributeValue)) {
             throw new InvalidFieldException();
         }
-        Nest nest = new Nest(clazz);
-        nest.setJedisPool(jedisPool);
-        Set<String> modelIdStrings = nest.cat(attributeName)
-                .cat(attributeValue).smembers();
         if (modelIdStrings != null) {
             // TODO: Do this lazy
             results = new ArrayList<Object>();
@@ -154,6 +161,7 @@ public final class JOhm {
     public static <T> List<T> find(Class<?> clazz, boolean returnOnlyIds, NVField... attributes) {
     	//Clazz Validation
     	JOhmUtils.Validator.checkValidModelClazz(clazz);
+    	final String HASH_TAG = getHashTag(clazz);
 
     	//Process "EQUALTO" fields and keep track of range fields.
     	List<Object> results = null;
@@ -161,9 +169,8 @@ public final class JOhm {
     	nest.setJedisPool(jedisPool);
     	List<NVField> rangeFields = new ArrayList<NVField>();
     	for(NVField nvField : attributes) {
-
-    		if (nvField.getConditionUsed().equals(Condition.GREATERTHANEQUALTO) || nvField.getConditionUsed().equals(Condition.LESSTHANEQUALTO)
-    				|| nvField.getConditionUsed().equals(Condition.GREATERTHAN) || nvField.getConditionUsed().equals(Condition.LESSTHAN)) {
+    		//Continue if condition is not 'Equals'
+    		if (!nvField.getConditionUsed().equals(Condition.EQUALS)) {
     			rangeFields.add(nvField);
     			continue;
     		}
@@ -179,19 +186,30 @@ public final class JOhm {
     				attributeName = nvField.getAttributeName();
     			}
     			referenceAttributeName = nvField.getReferenceAttributeName();
+    			
+    			if (nvField.getConditionUsed().equals(Condition.EQUALS)) {
+    				if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+    					if (referenceAttributeName != null){
+    						nest.cat(HASH_TAG).cat(attributeName)
+    						.cat(referenceAttributeName)
+    						.cat(nvField.getReferenceAttributeValue()).next();
+    					}else{
+    						nest.cat(HASH_TAG).cat(attributeName)
+    						.cat(nvField.getAttributeValue()).next();
+    					}
+    				}else{
+    					if (referenceAttributeName != null){
+    						nest.cat(attributeName)
+    						.cat(referenceAttributeName)
+    						.cat(nvField.getReferenceAttributeValue()).next();
+    					}else{
+    						nest.cat(attributeName)
+    						.cat(nvField.getAttributeValue()).next();
+    					}
+    				}
+    			}
     		}catch(Exception e) {
     			throw new InvalidFieldException();
-    		}
-
-    		if (nvField.getConditionUsed().equals(Condition.EQUALS)) {
-    			if (referenceAttributeName != null){
-    				nest.cat(attributeName)
-    				.cat(referenceAttributeName)
-    				.cat(nvField.getReferenceAttributeValue()).next();
-    			}else{
-    				nest.cat(attributeName)
-    				.cat(nvField.getAttributeValue()).next();
-    			}
     		}
     	}
 
@@ -199,7 +217,6 @@ public final class JOhm {
 
     	//Process range fields now.	
     	if (!rangeFields.isEmpty()) {//Range condition exist
-
     		//Store the intersection that satisfy "EQUALTO" condition at a destination key if there are more conditions to evaluate
     		String destinationKeyForEqualToMembers = null;
     		if (nest.keys() != null && !nest.keys().isEmpty()){
@@ -209,11 +226,10 @@ public final class JOhm {
     		}
 
     		for (NVField rangeField:rangeFields) {
-
-    			//Do the validation and get the attributeName and referenceAttributeName..
     			String attributeName;
     			String referenceAttributeName = null;
     			try{
+    				//Do the validation and get the attributeName and referenceAttributeName.
     				Field field = validationChecks(clazz, rangeField);
     				if (field.isAnnotationPresent(Reference.class)) {
     					attributeName = JOhmUtils.getReferenceKeyName(field);
@@ -221,44 +237,62 @@ public final class JOhm {
     					attributeName=rangeField.getAttributeName();
     				}
     				referenceAttributeName=rangeField.getReferenceAttributeName();
+
+    				//Intersection of sorted and unsorted set.
+    				if (destinationKeyForEqualToMembers != null) {//EQUALTo condition exist 
+    					nest = new Nest(clazz);
+    					nest.setJedisPool(jedisPool);
+    					if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+    						if (referenceAttributeName != null) {
+    							nest.cat(HASH_TAG).cat(attributeName)
+    							.cat(referenceAttributeName).next();
+    						}else{
+    							nest.cat(HASH_TAG).cat(attributeName).next();
+    						}
+    					}else{
+    						if (referenceAttributeName != null) {
+    							nest.cat(attributeName)
+    							.cat(referenceAttributeName).next();
+    						}else{
+    							nest.cat(attributeName).next();
+    						}
+    					}
+    					nest.cat(destinationKeyForEqualToMembers).next();
+
+    					//Get the name of the key where the combined set is located and on which range operation needs to be done.
+    					String keyNameForRange = nest.combineKeys();
+
+    					//Store the intersection at the key
+    					ZParams params = new ZParams();
+    					params.weights(1,0);
+    					nest.zinterstore(keyNameForRange, params);
+
+    					//Reinitialize nest in this case with new keyNameForRange
+    					nest = new Nest(keyNameForRange);
+    					nest.setJedisPool(jedisPool);
+    				}else{//EQUALTo condition not exist 
+    					nest = new Nest(clazz);
+    					nest.setJedisPool(jedisPool);
+
+    					//Get the range and add the result to modelIdStrings.
+    					if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+    						if (referenceAttributeName != null){
+    							nest.cat(HASH_TAG).cat(attributeName)
+    							.cat(referenceAttributeName);
+    						}else{
+    							nest.cat(HASH_TAG).cat(attributeName);
+    						}
+    					}else{
+    						if (referenceAttributeName != null){
+    							nest.cat(attributeName)
+    							.cat(referenceAttributeName);
+    						}else{
+    							nest.cat(attributeName);
+    						}
+    					}
+    				}
     			}catch(Exception e) {
     				throw new InvalidFieldException();
-    			}
-
-    			if (destinationKeyForEqualToMembers != null) {//EQUALTo condition exist 
-    				//Intersection of sorted and unsorted set.
-    				nest = new Nest(clazz);
-    				nest.setJedisPool(jedisPool);
-    				if (referenceAttributeName != null) {
-    					nest.cat(attributeName)
-    					.cat(referenceAttributeName).next();
-    				}else{
-    					nest.cat(attributeName).next();
-    				}
-
-    				nest.cat(destinationKeyForEqualToMembers).next();
-
-    				//Get the name of the key where the combined set is located and on which range operation needs to be done.
-    				String keyNameForRange = nest.combineKeys();
-
-    				//Store the intersection at the key
-    				ZParams params = new ZParams();
-    				params.weights(1,0);
-    				nest.zinterstore(keyNameForRange, params);
-
-    				nest = new Nest(keyNameForRange);
-    				nest.setJedisPool(jedisPool);
-    			}else{
-    				nest = new Nest(clazz);
-    				nest.setJedisPool(jedisPool);
-
-    				//Get the range and add the result to modelIdStrings.
-    				if (referenceAttributeName != null){
-    					nest.cat(attributeName)
-    					.cat(referenceAttributeName);
-    				}else{
-    					nest.cat(attributeName);
-    				}
     			}
 
     			//Do the range operations
@@ -381,21 +415,23 @@ public final class JOhm {
      * @return
      */
     public static <T> T save(final Object model) {
-        return JOhm.<T> save(model, false);
+        return JOhm.<T> save(model, false, false);
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> T save(final Object model, boolean saveChildren) {
+    public static <T> T save(final Object model, boolean saveChildren, boolean doMulti) {
         if (!isNew(model)) {
             delete(model.getClass(), JOhmUtils.getId(model));
         }
         final Nest nest = initIfNeeded(model);
+        final String HASH_TAG = getHashTag(model.getClass());
 
         final Map<String, String> hashedObject = new HashMap<String, String>();
         Map<RedisArray<Object>, Object[]> pendingArraysToPersist = null;
         try {
             String fieldName = null;
             for (Field field : JOhmUtils.gatherAllFields(model.getClass())) {
+            	fieldName = null;
                 field.setAccessible(true);
                 if (JOhmUtils.detectJOhmCollection(field)
                         || field.isAnnotationPresent(Id.class)) {
@@ -437,24 +473,36 @@ public final class JOhm {
                 			throw new MissingIdException();
                 		}
                 		if (saveChildren) {
-                			save(child, saveChildren); // some more work to do
+                			save(child, saveChildren, false); // some more work to do
                 		}
                 		hashedObject.put(fieldName, String.valueOf(JOhmUtils
                 				.getId(child)));
                 	}
                 }
                 if (field.isAnnotationPresent(Indexed.class)) {
+                	if (fieldName == null) {
+    					fieldName = field.getName();
+    				}
                 	Object fieldValue = field.get(model);
                 	if (fieldValue != null
                 			&& field.isAnnotationPresent(Reference.class)) {
                 		fieldValue = JOhmUtils.getId(fieldValue);
                 	}
                 	if (!JOhmUtils.isNullOrEmpty(fieldValue)) {
-                		nest.cat(fieldName).cat(fieldValue).sadd(
-                				String.valueOf(JOhmUtils.getId(model)));
+                		if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+                			nest.cat(HASH_TAG).cat(fieldName).cat(fieldValue).sadd(
+                					String.valueOf(JOhmUtils.getId(model)));
+                		}else{
+                			nest.cat(fieldName).cat(fieldValue).sadd(
+                					String.valueOf(JOhmUtils.getId(model)));
+                		}
                 		
                 		if (JOhmUtils.Validator.checkValidRangeIndexedAttribute(field) && field.isAnnotationPresent(Comparable.class)) {
-                			nest.cat(fieldName).zadd(Double.valueOf(String.valueOf(fieldValue)), String.valueOf(JOhmUtils.getId(model)));
+                			if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+                				nest.cat(HASH_TAG).cat(fieldName).zadd(Double.valueOf(String.valueOf(fieldValue)), String.valueOf(JOhmUtils.getId(model)));
+                			}else{
+                				nest.cat(fieldName).zadd(Double.valueOf(String.valueOf(fieldValue)), String.valueOf(JOhmUtils.getId(model)));
+                			}
                 		}
 
                 		if (field.isAnnotationPresent(Reference.class)) {
@@ -466,11 +514,11 @@ public final class JOhm {
                 					childfieldName = childField.getName();
                 					Object childFieldValue = childField.get(childModel);
                 					if (!JOhmUtils.isNullOrEmpty(childFieldValue)) {
-                						nest.cat(fieldName).cat(childfieldName).cat(childFieldValue).sadd(
+                						nest.cat(HASH_TAG).cat(fieldName).cat(childfieldName).cat(childFieldValue).sadd(
                 								String.valueOf(JOhmUtils.getId(model)));  
                 						
                 						if (JOhmUtils.Validator.checkValidRangeIndexedAttribute(childField) && childField.isAnnotationPresent(Comparable.class)) {
-                                			nest.cat(fieldName).cat(childfieldName).zadd(Double.valueOf(String.valueOf(childFieldValue)), String.valueOf(JOhmUtils.getId(model)));
+                                			nest.cat(HASH_TAG).cat(fieldName).cat(childfieldName).zadd(Double.valueOf(String.valueOf(childFieldValue)), String.valueOf(JOhmUtils.getId(model)));
                                 		}
                 					}
                 				}
@@ -481,7 +529,7 @@ public final class JOhm {
             }
             
             // always add to the all set, to support getAll
-            nest.cat("all").sadd(String.valueOf(JOhmUtils.getId(model)));
+            nest.cat(HASH_TAG).cat("all").sadd(String.valueOf(JOhmUtils.getId(model)));
         } catch (IllegalArgumentException e) {
             throw new JOhmException(e,
                     JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
@@ -490,12 +538,17 @@ public final class JOhm {
                     JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
         }
 
-        nest.multi(new TransactionBlock() {
-            public void execute() throws JedisException {
-                del(nest.cat(JOhmUtils.getId(model)).key());
-                hmset(nest.cat(JOhmUtils.getId(model)).key(), hashedObject);
-            }
-        });
+        if (doMulti) {
+        	nest.multi(new TransactionBlock() {
+        		public void execute() throws JedisException {
+        			del(nest.cat(JOhmUtils.getId(model)).key());
+        			hmset(nest.cat(JOhmUtils.getId(model)).key(), hashedObject);
+        		}
+        	});
+        }else{
+        	nest.cat(JOhmUtils.getId(model)).del();
+        	nest.cat(JOhmUtils.getId(model)).hmset(hashedObject);
+        }
 
         if (pendingArraysToPersist != null && pendingArraysToPersist.size() > 0) {
             for (Map.Entry<RedisArray<Object>, Object[]> arrayEntry : pendingArraysToPersist
@@ -521,6 +574,7 @@ public final class JOhm {
     public static <T> T transactedSave(final Object model) {
     	final Map<String, String> memberToBeRemovedFromSets = new HashMap<String, String>();
     	final Map<String, String> memberToBeRemovedFromSortedSets = new HashMap<String, String>();
+    	final String HASH_TAG = getHashTag(model.getClass());
     	if (!isNew(model)) {
         	cleanUpForSave(model.getClass(), JOhmUtils.getId(model), memberToBeRemovedFromSets, memberToBeRemovedFromSortedSets);
     	}
@@ -534,6 +588,7 @@ public final class JOhm {
     	try {
     		String fieldName = null;
     		for (Field field : JOhmUtils.gatherAllFields(model.getClass())) {
+    			fieldName = null;
     			field.setAccessible(true);
     			if (JOhmUtils.detectJOhmCollection(field)
     					|| field.isAnnotationPresent(Id.class)) {
@@ -579,16 +634,27 @@ public final class JOhm {
     				}
     			}
     			if (field.isAnnotationPresent(Indexed.class)) {
+    				if (fieldName == null) {
+    					fieldName = field.getName();
+    				}
     				Object fieldValue = field.get(model);
     				if (fieldValue != null
     						&& field.isAnnotationPresent(Reference.class)) {
     					fieldValue = JOhmUtils.getId(fieldValue);
     				}
     				if (!JOhmUtils.isNullOrEmpty(fieldValue)) {
-    					memberToBeAddedToSets.put(nest.cat(fieldName).cat(fieldValue).key(), String.valueOf(JOhmUtils.getId(model)));
+    					if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+    						memberToBeAddedToSets.put(nest.cat(HASH_TAG).cat(fieldName).cat(fieldValue).key(), String.valueOf(JOhmUtils.getId(model)));
+    					}else{
+    						memberToBeAddedToSets.put(nest.cat(fieldName).cat(fieldValue).key(), String.valueOf(JOhmUtils.getId(model)));
+    					}
     					
     					if (JOhmUtils.Validator.checkValidRangeIndexedAttribute(field) && field.isAnnotationPresent(Comparable.class)) {
-    						memberToBeAddedToSortedSets.put(nest.cat(fieldName).key(),  new ScoreField(Double.valueOf(String.valueOf(fieldValue)), String.valueOf(JOhmUtils.getId(model))));
+    						if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+    							memberToBeAddedToSortedSets.put(nest.cat(HASH_TAG).cat(fieldName).key(),  new ScoreField(Double.valueOf(String.valueOf(fieldValue)), String.valueOf(JOhmUtils.getId(model))));
+    						}else{
+    							memberToBeAddedToSortedSets.put(nest.cat(fieldName).key(),  new ScoreField(Double.valueOf(String.valueOf(fieldValue)), String.valueOf(JOhmUtils.getId(model))));
+    						}
     					}
 
     					if (field.isAnnotationPresent(Reference.class)) {
@@ -600,10 +666,10 @@ public final class JOhm {
     								childfieldName = childField.getName();
     								Object childFieldValue = childField.get(childModel);
     								if (childFieldValue != null && !JOhmUtils.isNullOrEmpty(childFieldValue)) {
-    									memberToBeAddedToSets.put(nest.cat(fieldName).cat(childfieldName).cat(childFieldValue).key(), String.valueOf(JOhmUtils.getId(model)));
+    									memberToBeAddedToSets.put(nest.cat(HASH_TAG).cat(fieldName).cat(childfieldName).cat(childFieldValue).key(), String.valueOf(JOhmUtils.getId(model)));
     									
     									if (JOhmUtils.Validator.checkValidRangeIndexedAttribute(childField) && childField.isAnnotationPresent(Comparable.class)) {
-    										memberToBeAddedToSortedSets.put(nest.cat(fieldName).cat(childfieldName).key(), new ScoreField(Double.valueOf(String.valueOf(childFieldValue)), String.valueOf(JOhmUtils.getId(model))));
+    										memberToBeAddedToSortedSets.put(nest.cat(HASH_TAG).cat(fieldName).cat(childfieldName).key(), new ScoreField(Double.valueOf(String.valueOf(childFieldValue)), String.valueOf(JOhmUtils.getId(model))));
     									}
     								}
     							}
@@ -614,7 +680,7 @@ public final class JOhm {
     		}
     		
    			// always add to the all set, to support getAll
-            memberToBeAddedToSets.put("all", String.valueOf(JOhmUtils.getId(model)));
+            memberToBeAddedToSets.put(HASH_TAG + ":" + "all", String.valueOf(JOhmUtils.getId(model)));
     	} catch (IllegalArgumentException e) {
     		 throw new JOhmException(e,
                     JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
@@ -674,6 +740,7 @@ public final class JOhm {
     public static boolean delete(Class<?> clazz, long id,
             boolean deleteIndexes, boolean deleteChildren) {
         JOhmUtils.Validator.checkValidModelClazz(clazz);
+        final String HASH_TAG = getHashTag(clazz);
         boolean deleted = false;
         Object persistedModel = get(clazz, id);
         if (persistedModel != null) {
@@ -702,12 +769,22 @@ public final class JOhm {
                             fieldValue = JOhmUtils.getId(fieldValue);
                         }
                         if (!JOhmUtils.isNullOrEmpty(fieldValue)) {
-                        	nest.cat(field.getName()).cat(fieldValue).srem(
-                        			String.valueOf(id));
+                        	if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+                        		nest.cat(HASH_TAG).cat(field.getName()).cat(fieldValue).srem(
+                        				String.valueOf(id));
+                        	}else{
+                        		nest.cat(field.getName()).cat(fieldValue).srem(
+                        				String.valueOf(id));
+                        	}
                         	
                         	if (JOhmUtils.Validator.checkValidRangeIndexedAttribute(field) && field.isAnnotationPresent(Comparable.class)) {
-                        		nest.cat(field.getName()).zrem(
-                            			String.valueOf(id));
+                        		if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+                        			nest.cat(HASH_TAG).cat(field.getName()).zrem(
+                        					String.valueOf(id));
+                        		}else{
+                        			nest.cat(field.getName()).zrem(
+                        					String.valueOf(id));
+                        		}
                         	}
 
                         	if (field.isAnnotationPresent(Reference.class)) {
@@ -720,11 +797,11 @@ public final class JOhm {
                         					childfieldName = childField.getName();
                         					Object childFieldValue = childField.get(childModel);
                         					if (childFieldValue != null && !JOhmUtils.isNullOrEmpty(childFieldValue)) {
-                        						nest.cat(field.getName()).cat(childfieldName).cat(childFieldValue).srem(
+                        						nest.cat(HASH_TAG).cat(field.getName()).cat(childfieldName).cat(childFieldValue).srem(
                         								String.valueOf(JOhmUtils.getId(persistedModel)));    
                         						
                         						if (JOhmUtils.Validator.checkValidRangeIndexedAttribute(childField) && childField.isAnnotationPresent(Comparable.class)) {
-                                            		nest.cat(field.getName()).cat(childfieldName).zrem(
+                                            		nest.cat(HASH_TAG).cat(field.getName()).cat(childfieldName).zrem(
                                             				String.valueOf(JOhmUtils.getId(persistedModel)));
                                             	}
                         					}
@@ -784,6 +861,7 @@ public final class JOhm {
     private static Map<String, String> cleanUpForSave(Class<?> clazz, long id, Map<String, String> memberToBeRemovedFromSet, Map<String, String> memberToBeRemovedFromSortedSet) {
     	JOhmUtils.Validator.checkValidModelClazz(clazz);
     	Object persistedModel = get(clazz, id);
+    	final String HASH_TAG = getHashTag(clazz);
     	if (persistedModel != null) {
     		Nest nest = new Nest(persistedModel);
     		nest.setJedisPool(jedisPool);
@@ -807,10 +885,18 @@ public final class JOhm {
     						fieldValue = JOhmUtils.getId(fieldValue);
     					}
     					if (!JOhmUtils.isNullOrEmpty(fieldValue)) {
-    						memberToBeRemovedFromSet.put(nest.cat(field.getName()).cat(fieldValue).key(), String.valueOf(id));
+    						if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+    							memberToBeRemovedFromSet.put(nest.cat(HASH_TAG).cat(field.getName()).cat(fieldValue).key(), String.valueOf(id));
+    						}else{
+    							memberToBeRemovedFromSet.put(nest.cat(field.getName()).cat(fieldValue).key(), String.valueOf(id));
+    						}
 
     						if (JOhmUtils.Validator.checkValidRangeIndexedAttribute(field)) {
-    							memberToBeRemovedFromSortedSet.put(nest.cat(field.getName()).key(), String.valueOf(id));
+    							if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+    								memberToBeRemovedFromSortedSet.put(nest.cat(HASH_TAG).cat(field.getName()).key(), String.valueOf(id));
+    							}else{
+    								memberToBeRemovedFromSortedSet.put(nest.cat(field.getName()).key(), String.valueOf(id));
+    							}
     						}
 
     						if (field.isAnnotationPresent(Reference.class)) {
@@ -822,9 +908,9 @@ public final class JOhm {
     									childfieldName = childField.getName();
     									Object childFieldValue = childField.get(childModel);
     									if (!JOhmUtils.isNullOrEmpty(childFieldValue)) {
-    										memberToBeRemovedFromSet.put(nest.cat(field.getName()).cat(childfieldName).cat(childFieldValue).key(), String.valueOf(JOhmUtils.getId(persistedModel)));
+    										memberToBeRemovedFromSet.put(nest.cat(HASH_TAG).cat(field.getName()).cat(childfieldName).cat(childFieldValue).key(), String.valueOf(JOhmUtils.getId(persistedModel)));
     										if (JOhmUtils.Validator.checkValidRangeIndexedAttribute(field)) {
-    											memberToBeRemovedFromSortedSet.put(nest.cat(field.getName()).cat(childfieldName).key(), String.valueOf(JOhmUtils.getId(persistedModel)));
+    											memberToBeRemovedFromSortedSet.put(nest.cat(HASH_TAG).cat(field.getName()).cat(childfieldName).key(), String.valueOf(JOhmUtils.getId(persistedModel)));
     										}
     									}
     								}
@@ -906,10 +992,11 @@ public final class JOhm {
     @SuppressWarnings("unchecked")
     public static <T> Set<T> getAll(Class<?> clazz) {
         JOhmUtils.Validator.checkValidModelClazz(clazz);
+        final String HASH_TAG = getHashTag(clazz);
         Set<Object> results = null;
         Nest nest = new Nest(clazz);
         nest.setJedisPool(jedisPool);
-        Set<String> modelIdStrings = nest.cat("all").smembers();
+        Set<String> modelIdStrings = nest.cat(HASH_TAG).cat("all").smembers();
         if (modelIdStrings != null) {
             results = new HashSet<Object>();
             Object indexed = null;
@@ -921,5 +1008,9 @@ public final class JOhm {
             }
         }
         return (Set<T>) results;
+    }
+    
+    private static String getHashTag(Class<?> clazz) {
+    	return "{" + clazz.getSimpleName() + "}";
     }
 }
