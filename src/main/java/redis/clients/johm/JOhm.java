@@ -180,32 +180,25 @@ public final class JOhm {
     		String referenceAttributeName = null;
     		try{
     			Field field = validationChecks(clazz, nvField);
-    			if (field.isAnnotationPresent(Reference.class)) {
-    				attributeName = JOhmUtils.getReferenceKeyName(field);
-    			}else{
-    				attributeName = nvField.getAttributeName();
-    			}
-    			referenceAttributeName = nvField.getReferenceAttributeName();
-    			
     			if (nvField.getConditionUsed().equals(Condition.EQUALS)) {
-    				if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
-    					if (referenceAttributeName != null){
+    				boolean isAttribute = field.isAnnotationPresent(Attribute.class);
+    				boolean isReference = field.isAnnotationPresent(Reference.class);
+    				if (isAttribute || isReference) {//Do hash tagging only for attribute or reference
+    					if (isReference) {
+    						attributeName = JOhmUtils.getReferenceKeyName(field);
+    						referenceAttributeName = nvField.getReferenceAttributeName();
     						nest.cat(HASH_TAG).cat(attributeName)
     						.cat(referenceAttributeName)
     						.cat(nvField.getReferenceAttributeValue()).next();
     					}else{
+    						attributeName = nvField.getAttributeName();
     						nest.cat(HASH_TAG).cat(attributeName)
     						.cat(nvField.getAttributeValue()).next();
     					}
-    				}else{
-    					if (referenceAttributeName != null){
-    						nest.cat(attributeName)
-    						.cat(referenceAttributeName)
-    						.cat(nvField.getReferenceAttributeValue()).next();
-    					}else{
-    						nest.cat(attributeName)
-    						.cat(nvField.getAttributeValue()).next();
-    					}
+    				}else{//no hash tagging
+    					attributeName = nvField.getAttributeName();
+    					nest.cat(attributeName)
+    					.cat(nvField.getAttributeValue()).next();
     				}
     			}
     		}catch(Exception e) {
@@ -230,32 +223,27 @@ public final class JOhm {
     			String referenceAttributeName = null;
     			try{
     				//Do the validation and get the attributeName and referenceAttributeName.
-    				Field field = validationChecks(clazz, rangeField);
-    				if (field.isAnnotationPresent(Reference.class)) {
-    					attributeName = JOhmUtils.getReferenceKeyName(field);
-    				}else{
-    					attributeName=rangeField.getAttributeName();
-    				}
-    				referenceAttributeName=rangeField.getReferenceAttributeName();
-
+    				Field field = validationChecks(clazz, rangeField);		
     				//Intersection of sorted and unsorted set.
     				if (destinationKeyForEqualToMembers != null) {//EQUALTo condition exist 
     					nest = new Nest(clazz);
     					nest.setJedisPool(jedisPool);
-    					if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
-    						if (referenceAttributeName != null) {
+    					
+    					boolean isAttribute = field.isAnnotationPresent(Attribute.class);
+        				boolean isReference = field.isAnnotationPresent(Reference.class);
+    					if (isAttribute || isReference) {//Do hash tagging only for attribute or reference
+    						if (isReference) {
+    							attributeName = JOhmUtils.getReferenceKeyName(field);
+    							referenceAttributeName=rangeField.getReferenceAttributeName();
     							nest.cat(HASH_TAG).cat(attributeName)
     							.cat(referenceAttributeName).next();
     						}else{
+    							attributeName=rangeField.getAttributeName();
     							nest.cat(HASH_TAG).cat(attributeName).next();
     						}
-    					}else{
-    						if (referenceAttributeName != null) {
-    							nest.cat(attributeName)
-    							.cat(referenceAttributeName).next();
-    						}else{
-    							nest.cat(attributeName).next();
-    						}
+    					}else{//no hash tagging
+    						attributeName=rangeField.getAttributeName();
+    						nest.cat(attributeName).next();
     					}
     					nest.cat(destinationKeyForEqualToMembers).next();
 
@@ -275,20 +263,21 @@ public final class JOhm {
     					nest.setJedisPool(jedisPool);
 
     					//Get the range and add the result to modelIdStrings.
-    					if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
-    						if (referenceAttributeName != null){
+    					boolean isAttribute = field.isAnnotationPresent(Attribute.class);
+        				boolean isReference = field.isAnnotationPresent(Reference.class);
+    					if (isAttribute || isReference) {//Do hash tagging only for attribute or reference
+    						if (isReference) {
+    							attributeName = JOhmUtils.getReferenceKeyName(field);
+    							referenceAttributeName=rangeField.getReferenceAttributeName();
     							nest.cat(HASH_TAG).cat(attributeName)
     							.cat(referenceAttributeName);
     						}else{
+    							attributeName=rangeField.getAttributeName();
     							nest.cat(HASH_TAG).cat(attributeName);
     						}
-    					}else{
-    						if (referenceAttributeName != null){
-    							nest.cat(attributeName)
-    							.cat(referenceAttributeName);
-    						}else{
-    							nest.cat(attributeName);
-    						}
+    					}else{//no hash tagging
+    						attributeName=rangeField.getAttributeName();
+    						nest.cat(attributeName);
     					}
     				}
     			}catch(Exception e) {
