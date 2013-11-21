@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import redis.clients.johm.JOhm.ModelMetaData;
 import redis.clients.johm.collections.RedisList;
 import redis.clients.johm.collections.RedisMap;
 import redis.clients.johm.collections.RedisSet;
@@ -46,83 +47,171 @@ public final class JOhmUtils {
         if (model == null || nest == null) {
             return;
         }
-        for (Field field : model.getClass().getDeclaredFields()) {
-            field.setAccessible(true);
-            try {
-                if (field.isAnnotationPresent(CollectionList.class)) {
-                    Validator.checkValidCollection(field);
-                    List<Object> list = (List<Object>) field.get(model);
-                    if (list == null) {
-                        CollectionList annotation = field
-                                .getAnnotation(CollectionList.class);
-                        RedisList<Object> redisList = new RedisList<Object>(
-                                annotation.of(), nest, field, model);
-                        field.set(model, redisList);
+        
+        ModelMetaData metaDataOfClass = JOhm.models.get(model.getClass().getSimpleName());
+        if (metaDataOfClass != null) {
+        	String fieldNameForCache = null;
+        	Collection<Field> fields = metaDataOfClass.allFields.values();
+        	for (Field field : fields) {
+                field.setAccessible(true);
+                fieldNameForCache = field.getName();
+                try {
+                    if (metaDataOfClass.collectionListFields.containsKey(fieldNameForCache)) {
+                        Validator.checkValidCollection(field);
+                        List<Object> list = (List<Object>) field.get(model);
+                        if (list == null) {
+                            CollectionList annotation = field
+                                    .getAnnotation(CollectionList.class);
+                            RedisList<Object> redisList = new RedisList<Object>(
+                                    annotation.of(), nest, field, model);
+                            field.set(model, redisList);
+                        }
                     }
-                }
-                if (field.isAnnotationPresent(CollectionSet.class)) {
-                    Validator.checkValidCollection(field);
-                    Set<Object> set = (Set<Object>) field.get(model);
-                    if (set == null) {
-                        CollectionSet annotation = field
-                                .getAnnotation(CollectionSet.class);
-                        RedisSet<Object> redisSet = new RedisSet<Object>(
-                                annotation.of(), nest, field, model);
-                        field.set(model, redisSet);
+                    if (metaDataOfClass.collectionSetFields.containsKey(fieldNameForCache)) {
+                        Validator.checkValidCollection(field);
+                        Set<Object> set = (Set<Object>) field.get(model);
+                        if (set == null) {
+                            CollectionSet annotation = field
+                                    .getAnnotation(CollectionSet.class);
+                            RedisSet<Object> redisSet = new RedisSet<Object>(
+                                    annotation.of(), nest, field, model);
+                            field.set(model, redisSet);
+                        }
                     }
-                }
-                if (field.isAnnotationPresent(CollectionSortedSet.class)) {
-                    Validator.checkValidCollection(field);
-                    Set<Object> sortedSet = (Set<Object>) field.get(model);
-                    if (sortedSet == null) {
-                        CollectionSortedSet annotation = field
-                                .getAnnotation(CollectionSortedSet.class);
-                        RedisSortedSet<Object> redisSortedSet = new RedisSortedSet<Object>(
-                                annotation.of(), annotation.by(), nest, field,
-                                model);
-                        field.set(model, redisSortedSet);
+                    if (metaDataOfClass.collectionSortedSetFields.containsKey(fieldNameForCache)) {
+                        Validator.checkValidCollection(field);
+                        Set<Object> sortedSet = (Set<Object>) field.get(model);
+                        if (sortedSet == null) {
+                            CollectionSortedSet annotation = field
+                                    .getAnnotation(CollectionSortedSet.class);
+                            RedisSortedSet<Object> redisSortedSet = new RedisSortedSet<Object>(
+                                    annotation.of(), annotation.by(), nest, field,
+                                    model);
+                            field.set(model, redisSortedSet);
+                        }
                     }
-                }
-                if (field.isAnnotationPresent(CollectionMap.class)) {
-                    Validator.checkValidCollection(field);
-                    Map<Object, Object> map = (Map<Object, Object>) field
-                            .get(model);
-                    if (map == null) {
-                        CollectionMap annotation = field
-                                .getAnnotation(CollectionMap.class);
-                        RedisMap<Object, Object> redisMap = new RedisMap<Object, Object>(
-                                annotation.key(), annotation.value(), nest,
-                                field, model);
-                        field.set(model, redisMap);
+                    if (metaDataOfClass.collectionMapFields.containsKey(fieldNameForCache)) {
+                        Validator.checkValidCollection(field);
+                        Map<Object, Object> map = (Map<Object, Object>) field
+                                .get(model);
+                        if (map == null) {
+                            CollectionMap annotation = field
+                                    .getAnnotation(CollectionMap.class);
+                            RedisMap<Object, Object> redisMap = new RedisMap<Object, Object>(
+                                    annotation.key(), annotation.value(), nest,
+                                    field, model);
+                            field.set(model, redisMap);
+                        }
                     }
+                } catch (IllegalArgumentException e) {
+                    throw new InvalidFieldException();
+                } catch (IllegalAccessException e) {
+                    throw new InvalidFieldException();
                 }
-            } catch (IllegalArgumentException e) {
-                throw new InvalidFieldException();
-            } catch (IllegalAccessException e) {
-                throw new InvalidFieldException();
             }
+        } else{
+        	for (Field field : model.getClass().getDeclaredFields()) {
+        		field.setAccessible(true);
+        		try {
+        			if (field.isAnnotationPresent(CollectionList.class)) {
+        				Validator.checkValidCollection(field);
+        				List<Object> list = (List<Object>) field.get(model);
+        				if (list == null) {
+        					CollectionList annotation = field
+        							.getAnnotation(CollectionList.class);
+        					RedisList<Object> redisList = new RedisList<Object>(
+        							annotation.of(), nest, field, model);
+        					field.set(model, redisList);
+        				}
+        			}
+        			if (field.isAnnotationPresent(CollectionSet.class)) {
+        				Validator.checkValidCollection(field);
+        				Set<Object> set = (Set<Object>) field.get(model);
+        				if (set == null) {
+        					CollectionSet annotation = field
+        							.getAnnotation(CollectionSet.class);
+        					RedisSet<Object> redisSet = new RedisSet<Object>(
+        							annotation.of(), nest, field, model);
+        					field.set(model, redisSet);
+        				}
+        			}
+        			if (field.isAnnotationPresent(CollectionSortedSet.class)) {
+        				Validator.checkValidCollection(field);
+        				Set<Object> sortedSet = (Set<Object>) field.get(model);
+        				if (sortedSet == null) {
+        					CollectionSortedSet annotation = field
+        							.getAnnotation(CollectionSortedSet.class);
+        					RedisSortedSet<Object> redisSortedSet = new RedisSortedSet<Object>(
+        							annotation.of(), annotation.by(), nest, field,
+        							model);
+        					field.set(model, redisSortedSet);
+        				}
+        			}
+        			if (field.isAnnotationPresent(CollectionMap.class)) {
+        				Validator.checkValidCollection(field);
+        				Map<Object, Object> map = (Map<Object, Object>) field
+        						.get(model);
+        				if (map == null) {
+        					CollectionMap annotation = field
+        							.getAnnotation(CollectionMap.class);
+        					RedisMap<Object, Object> redisMap = new RedisMap<Object, Object>(
+        							annotation.key(), annotation.value(), nest,
+        							field, model);
+        					field.set(model, redisMap);
+        				}
+        			}
+        		} catch (IllegalArgumentException e) {
+        			throw new InvalidFieldException();
+        		} catch (IllegalAccessException e) {
+        			throw new InvalidFieldException();
+        		}
+        	}
         }
     }
 
     static void loadId(final Object model, final Long id) {
         if (model != null) {
             boolean idFieldPresent = false;
-            for (Field field : model.getClass().getDeclaredFields()) {
-                field.setAccessible(true);
-                if (field.isAnnotationPresent(Id.class)) {
-                    idFieldPresent = true;
-                    Validator.checkValidIdType(field);
-                    try {
-                        field.set(model, id);
-                    } catch (IllegalArgumentException e) {
-                        throw new JOhmException(e,
-                                JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
-                    } catch (IllegalAccessException e) {
-                        throw new JOhmException(e,
-                                JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
-                    }
-                    break;
-                }
+            ModelMetaData metaDataOfClass = JOhm.models.get(model.getClass().getSimpleName());
+            if (metaDataOfClass != null) {
+            	  String fieldNameForCache = null;
+            	  Collection<Field> fieldsOfClass = metaDataOfClass.allFields.values();
+            	  for (Field field : fieldsOfClass) {
+                      field.setAccessible(true);
+                      fieldNameForCache = field.getName();
+                      if (metaDataOfClass.idField.equals(fieldNameForCache)) {
+                          idFieldPresent = true;
+                          Validator.checkValidIdType(field);
+                          try {
+                              field.set(model, id);
+                          } catch (IllegalArgumentException e) {
+                              throw new JOhmException(e,
+                                      JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
+                          } catch (IllegalAccessException e) {
+                              throw new JOhmException(e,
+                                      JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
+                          }
+                          break;
+                      }
+                  }
+            }else {
+            	for (Field field : model.getClass().getDeclaredFields()) {
+            		field.setAccessible(true);
+            		if (field.isAnnotationPresent(Id.class)) {
+            			idFieldPresent = true;
+            			Validator.checkValidIdType(field);
+            			try {
+            				field.set(model, id);
+            			} catch (IllegalArgumentException e) {
+            				throw new JOhmException(e,
+            						JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
+            			} catch (IllegalAccessException e) {
+            				throw new JOhmException(e,
+            						JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
+            			}
+            			break;
+            		}
+            	}
             }
             if (!idFieldPresent) {
                 throw new JOhmException(
@@ -296,7 +385,7 @@ public final class JOhmUtils {
             }
         }
         
-        static boolean checkValidRangeIndexedAttribute(final Field field) {
+        static void checkValidRangeIndexedAttribute(final Field field) {
         	Class<?> type = field.getType();
         	if ((type.equals(Integer.class) || type.equals(int.class)
                     || type.equals(Float.class) || type.equals(float.class)
@@ -304,10 +393,11 @@ public final class JOhmUtils {
                     || type.equals(Long.class) || type.equals(long.class)
                     || type.equals(BigDecimal.class)
                     || type.equals(BigInteger.class))) {
-        		return true;
-            } 
-        	
-        	return false;
+            } else{
+            	throw new JOhmException(field.getType().getSimpleName()
+                        + " is not a supported type for Comparable annotation",
+                        JOhmExceptionMeta.INVALID_MODEL_ANNOTATION);
+            }
         }
 
         static void checkValidReference(final Field field) {
