@@ -45,7 +45,7 @@ public class SaveRangeSearchBenchmark extends JOhmBenchmarkTestBase {
 			JOhm.find(User.class, true, new NVField("salary", 9999.99f + n, Condition.GREATERTHANEQUALTO));
 		}
 		timer.end();
-		printStats("saveRangeSearchModelWithGreaterThanCondition", totalOps, 3, timer.elapsed());
+		printStats("saveRangeSearchModelWithOnlyGreaterThanCondition", totalOps, 3, timer.elapsed());
 	}
 	
 	@Test
