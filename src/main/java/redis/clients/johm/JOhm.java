@@ -2,6 +2,7 @@ package redis.clients.johm;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -103,7 +104,8 @@ public final class JOhm {
         final String HASH_TAG = getHashTag(clazz);
         List<Object> results = null;
         if (!JOhmUtils.Validator.isIndexable(attributeName)) {
-            throw new InvalidFieldException();
+        	throw new JOhmException(new InvalidFieldException(),
+                    JOhmExceptionMeta.INVALID_INDEX);
         }
 
         Set<String> modelIdStrings = null;
@@ -111,15 +113,32 @@ public final class JOhm {
         nest.setJedisPool(jedisPool);
         try {
             Field field = clazz.getDeclaredField(attributeName);
+            if (field == null) {
+            	throw new JOhmException(new InvalidFieldException(),
+                        JOhmExceptionMeta.NO_SUCH_FIELD_EXCEPTION);
+            }
             field.setAccessible(true);
-            if (!field.isAnnotationPresent(Indexed.class)) {
+        	ModelMetaData metaDataOfClass = JOhm.models.get(clazz.getSimpleName());
+        	boolean isIndexed = false;
+        	boolean isReference = false;
+        	boolean isAttribute = false;
+        	if (metaDataOfClass != null) {
+        		isIndexed = metaDataOfClass.indexedFields.containsKey(field.getName());
+        		isReference = metaDataOfClass.referenceFields.containsKey(field.getName());
+        		isAttribute = metaDataOfClass.attributeFields.containsKey(field.getName());
+        	}else{
+        		isIndexed =field.isAnnotationPresent(Indexed.class);
+        		isReference = field.isAnnotationPresent(Reference.class);
+        		isAttribute = field.isAnnotationPresent(Attribute.class);
+        	}
+            if (!isIndexed) {
                 throw new JOhmException(new InvalidFieldException(),
                         JOhmExceptionMeta.MISSING_INDEXED_ANNOTATION);
             }
-            if (field.isAnnotationPresent(Reference.class)) {
+            if (isReference) {
                 attributeName = JOhmUtils.getReferenceKeyName(field);
             }
-            if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+            if (isAttribute || isReference) {
             	modelIdStrings = nest.cat(HASH_TAG).cat(attributeName)
             	.cat(attributeValue).smembers();
             }else{
@@ -192,7 +211,8 @@ public final class JOhm {
 
 				//Validation of Field
 				Field field = validationChecks(clazz, nvField);
-
+				field.setAccessible(true);
+				
 				//Processing of Field
 				if (metaDataOfClass != null) {
 					isAttribute = metaDataOfClass.attributeFields.containsKey(field.getName());
@@ -243,6 +263,7 @@ public final class JOhm {
 			for (NVField rangeField:rangeFields) {
 				//Validation of Field
 				Field field = validationChecks(clazz, rangeField);
+				field.setAccessible(true);
 
 				//Processing of Field
 				//If EQUALS condition exist, do intersection of equals fields(unsorted) set and range field(sorted) set and store the results at the key on which range operation will be done.
@@ -386,125 +407,87 @@ public final class JOhm {
     		field.setAccessible(true);
 
     		ModelMetaData metaDataOfClass = JOhm.models.get(clazz.getSimpleName());
+    		boolean isIndexed = false;
+    		boolean isReference = false;
+    		boolean isComparable = false;
     		if (metaDataOfClass != null) {
-    			if (!metaDataOfClass.indexedFields.containsKey(field.getName())) {
-    				throw new JOhmException(new InvalidFieldException(),
-                            JOhmExceptionMeta.MISSING_INDEXED_ANNOTATION);
-    			}
-    			
-    			if (metaDataOfClass.referenceFields.containsKey(field.getName())) {
-        			if (nvField.getReferenceAttributeName() != null) {
-        				
-        				ModelMetaData metaDataOfReferenceClass = metaDataOfClass.referenceClasses.get(field.getName());
-        				if (metaDataOfReferenceClass != null) {
-        					Field referenceField  = metaDataOfReferenceClass.allFields.get(nvField.getReferenceAttributeName());
-        					if (referenceField == null) {
-        						throw new JOhmException(new InvalidFieldException(),
-        		                        JOhmExceptionMeta.NO_SUCH_FIELD_EXCEPTION);
-        					}
-
-        					if (!metaDataOfReferenceClass.indexedFields.containsKey(referenceField.getName())){
-        						throw new JOhmException(new InvalidFieldException(),
-        	                            JOhmExceptionMeta.MISSING_INDEXED_ANNOTATION);
-        					}
-        					
-        					if (nvField.getConditionUsed().equals(Condition.GREATERTHANEQUALTO) || nvField.getConditionUsed().equals(Condition.LESSTHANEQUALTO)
-        							|| nvField.getConditionUsed().equals(Condition.GREATERTHAN) || nvField.getConditionUsed().equals(Condition.LESSTHAN)) {
-        						if (!metaDataOfReferenceClass.comparableFields.containsKey(referenceField.getName())) {
-        							throw new JOhmException(new InvalidFieldException(),
-            	                            JOhmExceptionMeta.MISSING_COMPARABLE_ANNOTATION);
-        						}
-        					}
-        				}else{
-        					Field referenceField = field.getType().getDeclaredField(nvField.getReferenceAttributeName());
-        					if (referenceField == null) {
-        						throw new JOhmException(new InvalidFieldException(),
-        		                        JOhmExceptionMeta.NO_SUCH_FIELD_EXCEPTION);
-        					}
-
-        					referenceField.setAccessible(true);
-        					if (!referenceField.isAnnotationPresent(Indexed.class)) {
-        						throw new JOhmException(new InvalidFieldException(),
-        	                            JOhmExceptionMeta.MISSING_INDEXED_ANNOTATION);
-        					}
-        					if (nvField.getConditionUsed().equals(Condition.GREATERTHANEQUALTO) || nvField.getConditionUsed().equals(Condition.LESSTHANEQUALTO)
-        							|| nvField.getConditionUsed().equals(Condition.GREATERTHAN) || nvField.getConditionUsed().equals(Condition.LESSTHAN)) {
-        						if (!referenceField.isAnnotationPresent(Comparable.class)) {
-        							throw new JOhmException(new InvalidFieldException(),
-            	                            JOhmExceptionMeta.MISSING_COMPARABLE_ANNOTATION);
-        						}
-        					}
-        				}
-        				
-        				if (JOhmUtils.isNullOrEmpty(nvField.getReferenceAttributeValue())) {
-        					throw new JOhmException(new InvalidFieldException(),
-    	                            JOhmExceptionMeta.INVALID_VALUE);
-        				}
-        			}
-        		}
-        		
-        		if (!metaDataOfClass.referenceFields.containsKey(field.getName())) {
-        			if (nvField.getConditionUsed().equals(Condition.GREATERTHANEQUALTO) || nvField.getConditionUsed().equals(Condition.LESSTHANEQUALTO)
-        					|| nvField.getConditionUsed().equals(Condition.GREATERTHAN) || nvField.getConditionUsed().equals(Condition.LESSTHAN)) {
-        				if (!field.isAnnotationPresent(Comparable.class)) {
-        					throw new JOhmException(new InvalidFieldException(),
-    	                            JOhmExceptionMeta.MISSING_COMPARABLE_ANNOTATION);
-        				}
-        			}
-
-        			if (JOhmUtils.isNullOrEmpty(nvField.getAttributeValue())) {
-        				throw new JOhmException(new InvalidFieldException(),
-	                            JOhmExceptionMeta.INVALID_VALUE);
-        			}
-        		}
-        		
+    			isIndexed = metaDataOfClass.indexedFields.containsKey(field.getName());
+    			isReference = metaDataOfClass.referenceFields.containsKey(field.getName());
+    			isComparable = metaDataOfClass.comparableFields.containsKey(field.getName());
     		}else{
-    			if (!field.isAnnotationPresent(Indexed.class)) {
-    				throw new JOhmException(new InvalidFieldException(),
-                            JOhmExceptionMeta.MISSING_INDEXED_ANNOTATION);
-    			}
-    			
-    			if (field.isAnnotationPresent(Reference.class)) {
-        			if (nvField.getReferenceAttributeName() != null) {
-        				Field referenceField = field.getType().getDeclaredField(nvField.getReferenceAttributeName());
-        				if (referenceField == null) {
-        					throw new JOhmException(new InvalidFieldException(),
-    		                        JOhmExceptionMeta.NO_SUCH_FIELD_EXCEPTION);
-        				}
-        				
-        				referenceField.setAccessible(true);
-        				if (!referenceField.isAnnotationPresent(Indexed.class)) {
-        					throw new JOhmException(new InvalidFieldException(),
-                                    JOhmExceptionMeta.MISSING_INDEXED_ANNOTATION);
-        				}
-        				if (nvField.getConditionUsed().equals(Condition.GREATERTHANEQUALTO) || nvField.getConditionUsed().equals(Condition.LESSTHANEQUALTO)
-        						|| nvField.getConditionUsed().equals(Condition.GREATERTHAN) || nvField.getConditionUsed().equals(Condition.LESSTHAN)) {
-        					if (!referenceField.isAnnotationPresent(Comparable.class)) {
-        						throw new JOhmException(new InvalidFieldException(),
-        	                            JOhmExceptionMeta.MISSING_COMPARABLE_ANNOTATION);
-        					}
-        				}
-        				if (JOhmUtils.isNullOrEmpty(nvField.getReferenceAttributeValue())) {
-        					throw new JOhmException(new InvalidFieldException(),
-    	                            JOhmExceptionMeta.INVALID_VALUE);
-        				}
-        			}
-        		}
-        		
-        		if (!field.isAnnotationPresent(Reference.class)) {
-        			if (nvField.getConditionUsed().equals(Condition.GREATERTHANEQUALTO) || nvField.getConditionUsed().equals(Condition.LESSTHANEQUALTO)
-        					|| nvField.getConditionUsed().equals(Condition.GREATERTHAN) || nvField.getConditionUsed().equals(Condition.LESSTHAN)) {
-        				if (!field.isAnnotationPresent(Comparable.class)) {
-        					throw new JOhmException(new InvalidFieldException(),
-    	                            JOhmExceptionMeta.MISSING_COMPARABLE_ANNOTATION);
-        				}
-        			}
+    			isIndexed = field.isAnnotationPresent(Indexed.class);
+    			isReference = field.isAnnotationPresent(Reference.class);
+    			isComparable = field.isAnnotationPresent(Comparable.class);
+    		}
+    		
+    		if (!isIndexed) {
+    			throw new JOhmException(new InvalidFieldException(),
+    					JOhmExceptionMeta.MISSING_INDEXED_ANNOTATION);
+    		}
 
-        			if (JOhmUtils.isNullOrEmpty(nvField.getAttributeValue())) {
-        				throw new JOhmException(new InvalidFieldException(),
-	                            JOhmExceptionMeta.INVALID_VALUE);
-        			}
-        		}
+    		if (isReference) {
+    			if (nvField.getReferenceAttributeName() != null) {
+    				
+    				ModelMetaData metaDataOfReferenceClass = null;
+    				boolean isIndexedFieldOfReference = false;
+    				boolean isComparableFieldOfReference = false;
+    				if (metaDataOfClass != null) {
+    					metaDataOfReferenceClass = metaDataOfClass.referenceClasses.get(field.getName());
+    				}
+    				
+    				if (metaDataOfReferenceClass != null) {
+    					Field referenceField  = metaDataOfReferenceClass.allFields.get(nvField.getReferenceAttributeName());
+    					if (referenceField == null) {
+    						throw new JOhmException(new InvalidFieldException(),
+    								JOhmExceptionMeta.NO_SUCH_FIELD_EXCEPTION);
+    					}
+
+    					isIndexedFieldOfReference = metaDataOfReferenceClass.indexedFields.containsKey(referenceField.getName());
+    					isComparableFieldOfReference = metaDataOfReferenceClass.comparableFields.containsKey(referenceField.getName());
+    				}else{
+    					Field referenceField = field.getType().getDeclaredField(nvField.getReferenceAttributeName());
+    					if (referenceField == null) {
+    						throw new JOhmException(new InvalidFieldException(),
+    								JOhmExceptionMeta.NO_SUCH_FIELD_EXCEPTION);
+    					}
+    					referenceField.setAccessible(true);
+    					isIndexedFieldOfReference = referenceField.isAnnotationPresent(Indexed.class);
+    					isComparableFieldOfReference = referenceField.isAnnotationPresent(Comparable.class);
+    				}
+
+    				if (!isIndexedFieldOfReference){
+    					throw new JOhmException(new InvalidFieldException(),
+    							JOhmExceptionMeta.MISSING_INDEXED_ANNOTATION);
+    				}
+
+    				if (nvField.getConditionUsed().equals(Condition.GREATERTHANEQUALTO) || nvField.getConditionUsed().equals(Condition.LESSTHANEQUALTO)
+    						|| nvField.getConditionUsed().equals(Condition.GREATERTHAN) || nvField.getConditionUsed().equals(Condition.LESSTHAN)) {
+    					if (!isComparableFieldOfReference) {
+    						throw new JOhmException(new InvalidFieldException(),
+    								JOhmExceptionMeta.MISSING_COMPARABLE_ANNOTATION);
+    					}
+    				}
+
+    				if (JOhmUtils.isNullOrEmpty(nvField.getReferenceAttributeValue())) {
+    					throw new JOhmException(new InvalidFieldException(),
+    							JOhmExceptionMeta.INVALID_VALUE);
+    				}
+    			}
+    		}
+
+    		if (!isReference) {
+    			if (nvField.getConditionUsed().equals(Condition.GREATERTHANEQUALTO) || nvField.getConditionUsed().equals(Condition.LESSTHANEQUALTO)
+    					|| nvField.getConditionUsed().equals(Condition.GREATERTHAN) || nvField.getConditionUsed().equals(Condition.LESSTHAN)) {
+    				if (!isComparable) {
+    					throw new JOhmException(new InvalidFieldException(),
+    							JOhmExceptionMeta.MISSING_COMPARABLE_ANNOTATION);
+    				}
+    			}
+
+    			if (JOhmUtils.isNullOrEmpty(nvField.getAttributeValue())) {
+    				throw new JOhmException(new InvalidFieldException(),
+    						JOhmExceptionMeta.INVALID_VALUE);
+    			}
     		}
     	} catch (SecurityException e) {
     		throw new JOhmException(e,
@@ -1013,13 +996,38 @@ public final class JOhm {
         if (persistedModel != null) {
             Nest nest = new Nest(persistedModel);
             nest.setJedisPool(jedisPool);
-            if (deleteIndexes) {
+           	ModelMetaData metaDataOfClass = JOhm.models.get(clazz.getSimpleName());
+           	Collection<Field> fields = new ArrayList<Field>();
+        	boolean isIndexable = false;
+        	boolean isReference = false;
+        	boolean isAttribute = false;
+        	boolean isComparable = false;
+        	boolean isArray = false;
+            if (metaDataOfClass != null) {
+            	fields = metaDataOfClass.allFields.values();
+            }else{
+            	fields = JOhmUtils.gatherAllFields(clazz);
+            }
+            
+            if (deleteIndexes) {	
                 // think about promoting deleteChildren as default behavior so
                 // that this field lookup gets folded into that
                 // if-deleteChildren block
-                for (Field field : JOhmUtils.gatherAllFields(clazz)) {
-                    if (field.isAnnotationPresent(Indexed.class)) {
-                        field.setAccessible(true);
+                for (Field field : fields) {
+                    field.setAccessible(true);
+                	if (metaDataOfClass != null) {
+                		isIndexable = metaDataOfClass.indexedFields.containsKey(field.getName());
+                		isReference = metaDataOfClass.referenceFields.containsKey(field.getName());
+                		isAttribute = metaDataOfClass.attributeFields.containsKey(field.getName());
+                		isComparable = metaDataOfClass.comparableFields.containsKey(field.getName());
+                	}else{
+                		isIndexable = field.isAnnotationPresent(Indexed.class);
+                		isReference = field.isAnnotationPresent(Reference.class);
+                		isAttribute = field.isAnnotationPresent(Attribute.class);
+                		isComparable = field.isAnnotationPresent(Comparable.class);
+                	}
+                	
+                	if (isIndexable) {
                         Object fieldValue = null;
                         try {
                             fieldValue = field.get(persistedModel);
@@ -1032,11 +1040,11 @@ public final class JOhm {
                                     JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
                         }
                         if (fieldValue != null
-                                && field.isAnnotationPresent(Reference.class)) {
+                                && isReference) {
                             fieldValue = JOhmUtils.getId(fieldValue);
                         }
                         if (!JOhmUtils.isNullOrEmpty(fieldValue)) {
-                        	if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+                        	if (isAttribute || isReference) {
                         		nest.cat(HASH_TAG).cat(field.getName()).cat(fieldValue).srem(
                         				String.valueOf(id));
                         	}else{
@@ -1044,8 +1052,8 @@ public final class JOhm {
                         				String.valueOf(id));
                         	}
                         	
-                        	if (field.isAnnotationPresent(Comparable.class)) {
-                        		if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
+                        	if (isComparable) {
+                        		if (isAttribute || isReference) {
                         			nest.cat(HASH_TAG).cat(field.getName()).zrem(
                         					String.valueOf(id));
                         		}else{
@@ -1054,20 +1062,39 @@ public final class JOhm {
                         		}
                         	}
 
-                        	if (field.isAnnotationPresent(Reference.class)) {
+                        	if (isReference) {
                         		try {
                         			String childfieldName = null;
                         			Object childModel = field.get(persistedModel);
-                        			for (Field childField : JOhmUtils.gatherAllFields(childModel.getClass())) {
+                        			ModelMetaData metaDataOfReferenceClass = JOhm.models.get(childModel.getClass().getSimpleName());
+                                   	Collection<Field> fieldsOfRerenceClass = new ArrayList<Field>();
+                                	boolean isIndexableFieldOfReference = false;
+                                	boolean isAttributeFieldOfReference = false;
+                                	boolean isComparableFieldOfReference  = false;
+                                    if (metaDataOfReferenceClass != null) {
+                                    	fieldsOfRerenceClass = metaDataOfReferenceClass.allFields.values();
+                                    }else{
+                                    	fieldsOfRerenceClass = JOhmUtils.gatherAllFields(childModel.getClass());
+                                    }
+                        			for (Field childField : fieldsOfRerenceClass) {
+                        				childfieldName = childField.getName();
                         				childField.setAccessible(true);
-                        				if (childField.isAnnotationPresent(Attribute.class) && (childField.isAnnotationPresent(Indexed.class))) {
-                        					childfieldName = childField.getName();
+                        				if (metaDataOfReferenceClass != null) {
+                        					isIndexableFieldOfReference = metaDataOfReferenceClass.indexedFields.containsKey(childfieldName);
+                        					isAttributeFieldOfReference = metaDataOfReferenceClass.attributeFields.containsKey(childfieldName);
+                        					isComparableFieldOfReference = metaDataOfReferenceClass.comparableFields.containsKey(childfieldName);
+                                    	}else{
+                                    		isIndexableFieldOfReference = childField.isAnnotationPresent(Indexed.class);
+                                    		isAttributeFieldOfReference = childField.isAnnotationPresent(Attribute.class);
+                                    		isComparableFieldOfReference = childField.isAnnotationPresent(Comparable.class);
+                                    	}
+                        				if (isAttributeFieldOfReference && isIndexableFieldOfReference) {
                         					Object childFieldValue = childField.get(childModel);
                         					if (childFieldValue != null && !JOhmUtils.isNullOrEmpty(childFieldValue)) {
                         						nest.cat(HASH_TAG).cat(field.getName()).cat(childfieldName).cat(childFieldValue).srem(
                         								String.valueOf(JOhmUtils.getId(persistedModel)));    
                         						
-                        						if (childField.isAnnotationPresent(Comparable.class)) {
+                        						if (isComparableFieldOfReference) {
                                             		nest.cat(HASH_TAG).cat(field.getName()).cat(childfieldName).zrem(
                                             				String.valueOf(JOhmUtils.getId(persistedModel)));
                                             	}
@@ -1087,10 +1114,17 @@ public final class JOhm {
                     }
                 }
             }
+            
             if (deleteChildren) {
-                for (Field field : JOhmUtils.gatherAllFields(clazz)) {
-                    if (field.isAnnotationPresent(Reference.class)) {
-                        field.setAccessible(true);
+                for (Field field : fields) {
+                    field.setAccessible(true);
+                	if (metaDataOfClass != null) {
+                		isReference = metaDataOfClass.referenceFields.containsKey(field.getName());
+                	}else{
+                		isReference = field.isAnnotationPresent(Reference.class);
+                	}
+                	
+                    if (isReference) {
                         try {
                             Object child = field.get(persistedModel);
                             if (child != null) {
@@ -1111,9 +1145,15 @@ public final class JOhm {
             }
             
             //Clean up array
-            for (Field field : JOhmUtils.gatherAllFields(clazz)) {
-            	if (field.isAnnotationPresent(Array.class)) {
-					field.setAccessible(true);
+            for (Field field : fields) {
+            	if (metaDataOfClass != null) {
+            		isArray = metaDataOfClass.arrayFields.containsKey(field.getName());
+            	}else{
+            		isArray = field.isAnnotationPresent(Array.class);
+            	}
+            	
+            	if (isArray) {
+            		field.setAccessible(true);
 					Array annotation = field.getAnnotation(Array.class);
 					RedisArray redisArray = new RedisArray(annotation
 							.length(), annotation.of(), nest, field,
@@ -1138,104 +1178,135 @@ public final class JOhm {
     		nest.setJedisPool(jedisPool);
     		try{
     			ModelMetaData metaDataOfClass = JOhm.models.get(clazz.getSimpleName());
+    			boolean isIndexable = false;
+    			boolean isReference = false;
+    			boolean isAttribute = false;
+    			boolean isComparable = false;
+    			boolean isArray = false;
+    			Collection<Field> fields = new ArrayList<Field>();
     			if (metaDataOfClass != null) {
-    				String fieldName = null;
-    				for (Field field : metaDataOfClass.allFields.values()) {
-    					fieldName = field.getName();
-    					if (metaDataOfClass.indexedFields.containsKey(fieldName)) {
-    						field.setAccessible(true);
-    						Object fieldValue = null;
-    						try {
-    							fieldValue = field.get(persistedModel);
-    						} catch (IllegalArgumentException e) {
-    							throw new JOhmException(
-    									e,
-    									JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
-    						} catch (IllegalAccessException e) {
-    							throw new JOhmException(e,
-    									JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
-    						}
-    						if (fieldValue != null
-    								&& metaDataOfClass.referenceFields.containsKey(fieldName)) {
-    							fieldValue = JOhmUtils.getId(fieldValue);
-    						}
-    						if (!JOhmUtils.isNullOrEmpty(fieldValue)) {
-    							if (metaDataOfClass.attributeFields.containsKey(fieldName) || metaDataOfClass.referenceFields.containsKey(fieldName)) {
-    								memberToBeRemovedFromSet.put(nest.cat(HASH_TAG).cat(field.getName()).cat(fieldValue).key(), String.valueOf(id));
-
-    								if (metaDataOfClass.comparableFields.containsKey(fieldName)) {
-    									memberToBeRemovedFromSortedSet.put(nest.cat(HASH_TAG).cat(field.getName()).key(), String.valueOf(id));
-    								}
-    							}else{
-    								memberToBeRemovedFromSet.put(nest.cat(field.getName()).cat(fieldValue).key(), String.valueOf(id));
-
-    								if (metaDataOfClass.comparableFields.containsKey(fieldName)) {
-    									memberToBeRemovedFromSortedSet.put(nest.cat(field.getName()).key(), String.valueOf(id));
-    								}
-    							}
-
-    							if (metaDataOfClass.referenceFields.containsKey(fieldName)) {
-    								String childfieldName = null;
-    								Object childModel = field.get(persistedModel);
-    								ModelMetaData metaDataOfReferenceClass = metaDataOfClass.referenceClasses.get(fieldName);
-    								for (Field childField : metaDataOfReferenceClass.allFields.values()) {
-    									childfieldName = childField.getName();
-    									childField.setAccessible(true);
-    									if (metaDataOfReferenceClass.attributeFields.containsKey(childfieldName) 
-    											&& (metaDataOfReferenceClass.referenceFields).containsKey(childfieldName)) {
-    										Object childFieldValue = childField.get(childModel);
-    										if (!JOhmUtils.isNullOrEmpty(childFieldValue)) {
-    											memberToBeRemovedFromSet.put(nest.cat(HASH_TAG).cat(field.getName()).cat(childfieldName).cat(childFieldValue).key(), String.valueOf(JOhmUtils.getId(persistedModel)));
-    											if (metaDataOfReferenceClass.comparableFields.containsKey(childfieldName)) {
-    												memberToBeRemovedFromSortedSet.put(nest.cat(HASH_TAG).cat(field.getName()).cat(childfieldName).key(), String.valueOf(JOhmUtils.getId(persistedModel)));
-    											}
-    										}
-    									}
-    								}
-    							}
-    						}
-    					}
-
-    					if (metaDataOfClass.arrayFields.containsKey(fieldName)) {
-    						field.setAccessible(true);
-    						Array annotation = field.getAnnotation(Array.class);
-    						RedisArray redisArray = new RedisArray(annotation
-    								.length(), annotation.of(), nest, field,
-    								persistedModel);
-    						redisArray.clear();
-    					}
-    				}
-
-    				if (cleanupChildren) {
-    					for (Field field : metaDataOfClass.allFields.values()) {
-    						if (metaDataOfClass.referenceFields.containsKey(field.getName())) {
-    							field.setAccessible(true);
-    							try {
-    								Object child = field.get(persistedModel);
-    								if (child != null) {
-    									cleanUpForSave(child.getClass(),
-    											JOhmUtils.getId(child), memberToBeRemovedFromSet,
-    											memberToBeRemovedFromSortedSet,
-    											cleanupChildren); // children
-    								}
-    							} catch (IllegalArgumentException e) {
-    								throw new JOhmException(
-    										e,
-    										JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
-    							} catch (IllegalAccessException e) {
-    								throw new JOhmException(e,
-    										JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
-    							}
-    						}
-    					}
-    				}
+    				fields = metaDataOfClass.allFields.values();
     			}else{
-    				for (Field field : JOhmUtils.gatherAllFields(clazz)) {
-    					if (field.isAnnotationPresent(Indexed.class)) {
+    				fields = JOhmUtils.gatherAllFields(clazz);
+    			}
+    			
+    			String fieldName = null;
+    			for (Field field : fields) {
+    				fieldName = field.getName();
+    				field.setAccessible(true);
+    				if (metaDataOfClass != null) {
+    					isIndexable = metaDataOfClass.indexedFields.containsKey(fieldName);
+    					isReference = metaDataOfClass.referenceFields.containsKey(fieldName);
+    					isAttribute = metaDataOfClass.attributeFields.containsKey(fieldName);
+    					isComparable = metaDataOfClass.comparableFields.containsKey(fieldName);
+    					isArray = metaDataOfClass.arrayFields.containsKey(fieldName);
+    				}else{
+    					isIndexable = field.isAnnotationPresent(Indexed.class);
+    					isReference = field.isAnnotationPresent(Reference.class);
+    					isAttribute = field.isAnnotationPresent(Attribute.class);
+    					isComparable = field.isAnnotationPresent(Comparable.class);
+    					isArray = field.isAnnotationPresent(Array.class);
+    				}
+
+    				if (isIndexable) {
+    					Object fieldValue = null;
+    					try {
+    						fieldValue = field.get(persistedModel);
+    					} catch (IllegalArgumentException e) {
+    						throw new JOhmException(
+    								e,
+    								JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
+    					} catch (IllegalAccessException e) {
+    						throw new JOhmException(e,
+    								JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
+    					}
+    					if (fieldValue != null
+    							&& isReference) {
+    						fieldValue = JOhmUtils.getId(fieldValue);
+    					}
+    					if (!JOhmUtils.isNullOrEmpty(fieldValue)) {
+    						if (isAttribute || isReference) {
+    							memberToBeRemovedFromSet.put(nest.cat(HASH_TAG).cat(field.getName()).cat(fieldValue).key(), String.valueOf(id));
+
+    							if (isComparable) {
+    								memberToBeRemovedFromSortedSet.put(nest.cat(HASH_TAG).cat(field.getName()).key(), String.valueOf(id));
+    							}
+    						}else{
+    							memberToBeRemovedFromSet.put(nest.cat(field.getName()).cat(fieldValue).key(), String.valueOf(id));
+
+    							if (isComparable) {
+    								memberToBeRemovedFromSortedSet.put(nest.cat(field.getName()).key(), String.valueOf(id));
+    							}
+    						}
+
+    						if (isReference) {
+    							String childfieldName = null;
+    							Object childModel = field.get(persistedModel);
+    							ModelMetaData metaDataOfReferenceClass = JOhm.models.get(childModel.getClass().getSimpleName());
+                               	Collection<Field> fieldsOfRerenceClass = new ArrayList<Field>();
+                            	boolean isIndexableFieldOfReference = false;
+                            	boolean isAttributeFieldOfReference = false;
+                            	boolean isComparableFieldOfReference  = false;
+                                if (metaDataOfReferenceClass != null) {
+                                	fieldsOfRerenceClass = metaDataOfReferenceClass.allFields.values();
+                                }else{
+                                	fieldsOfRerenceClass = JOhmUtils.gatherAllFields(childModel.getClass());
+                                }
+    							for (Field childField : fieldsOfRerenceClass) {
+    								childfieldName = childField.getName();
+    								childField.setAccessible(true);
+    								if (metaDataOfReferenceClass != null) {
+                    					isIndexableFieldOfReference = metaDataOfReferenceClass.indexedFields.containsKey(childfieldName);
+                    					isAttributeFieldOfReference = metaDataOfReferenceClass.attributeFields.containsKey(childfieldName);
+                    					isComparableFieldOfReference = metaDataOfReferenceClass.comparableFields.containsKey(childfieldName);
+                                	}else{
+                                		isIndexableFieldOfReference = childField.isAnnotationPresent(Indexed.class);
+                                		isAttributeFieldOfReference = childField.isAnnotationPresent(Attribute.class);
+                                		isComparableFieldOfReference = childField.isAnnotationPresent(Comparable.class);
+                                	}
+    								if (isAttributeFieldOfReference 
+    										&& isIndexableFieldOfReference) {
+    									Object childFieldValue = childField.get(childModel);
+    									if (!JOhmUtils.isNullOrEmpty(childFieldValue)) {
+    										memberToBeRemovedFromSet.put(nest.cat(HASH_TAG).cat(field.getName()).cat(childfieldName).cat(childFieldValue).key(), String.valueOf(JOhmUtils.getId(persistedModel)));
+    										if (isComparableFieldOfReference) {
+    											memberToBeRemovedFromSortedSet.put(nest.cat(HASH_TAG).cat(field.getName()).cat(childfieldName).key(), String.valueOf(JOhmUtils.getId(persistedModel)));
+    										}
+    									}
+    								}
+    							}
+    						}
+    					}
+    				}
+
+    				if (isArray) {
+    					field.setAccessible(true);
+    					Array annotation = field.getAnnotation(Array.class);
+    					RedisArray redisArray = new RedisArray(annotation
+    							.length(), annotation.of(), nest, field,
+    							persistedModel);
+    					redisArray.clear();
+    				}
+    			}
+
+    			if (cleanupChildren) {
+    				for (Field field : fields) {
+    					if (metaDataOfClass != null) {
+    						isReference = metaDataOfClass.referenceFields.containsKey(fieldName);
+    					}else {
+    						isReference = field.isAnnotationPresent(Reference.class);
+    					}
+
+    					if (isReference) {
     						field.setAccessible(true);
-    						Object fieldValue = null;
     						try {
-    							fieldValue = field.get(persistedModel);
+    							Object child = field.get(persistedModel);
+    							if (child != null) {
+    								cleanUpForSave(child.getClass(),
+    										JOhmUtils.getId(child), memberToBeRemovedFromSet,
+    										memberToBeRemovedFromSortedSet,
+    										cleanupChildren); // children
+    							}
     						} catch (IllegalArgumentException e) {
     							throw new JOhmException(
     									e,
@@ -1243,76 +1314,6 @@ public final class JOhm {
     						} catch (IllegalAccessException e) {
     							throw new JOhmException(e,
     									JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
-    						}
-    						if (fieldValue != null
-    								&& field.isAnnotationPresent(Reference.class)) {
-    							fieldValue = JOhmUtils.getId(fieldValue);
-    						}
-    						if (!JOhmUtils.isNullOrEmpty(fieldValue)) {
-    							if (field.isAnnotationPresent(Attribute.class) || field.isAnnotationPresent(Reference.class)) {
-    								memberToBeRemovedFromSet.put(nest.cat(HASH_TAG).cat(field.getName()).cat(fieldValue).key(), String.valueOf(id));
-
-    								if (field.isAnnotationPresent(Comparable.class)) {
-    									memberToBeRemovedFromSortedSet.put(nest.cat(HASH_TAG).cat(field.getName()).key(), String.valueOf(id));
-    								}
-    							}else{
-    								memberToBeRemovedFromSet.put(nest.cat(field.getName()).cat(fieldValue).key(), String.valueOf(id));
-
-    								if (field.isAnnotationPresent(Comparable.class)) {
-    									memberToBeRemovedFromSortedSet.put(nest.cat(field.getName()).key(), String.valueOf(id));
-    								}
-    							}
-
-    							if (field.isAnnotationPresent(Reference.class)) {
-    								String childfieldName = null;
-    								Object childModel = field.get(persistedModel);
-    								for (Field childField : JOhmUtils.gatherAllFields(childModel.getClass())) {
-    									childField.setAccessible(true);
-    									if (childField.isAnnotationPresent(Attribute.class) && (childField.isAnnotationPresent(Indexed.class))) {
-    										childfieldName = childField.getName();
-    										Object childFieldValue = childField.get(childModel);
-    										if (!JOhmUtils.isNullOrEmpty(childFieldValue)) {
-    											memberToBeRemovedFromSet.put(nest.cat(HASH_TAG).cat(field.getName()).cat(childfieldName).cat(childFieldValue).key(), String.valueOf(JOhmUtils.getId(persistedModel)));
-    											if (childField.isAnnotationPresent(Comparable.class)) {
-    												memberToBeRemovedFromSortedSet.put(nest.cat(HASH_TAG).cat(field.getName()).cat(childfieldName).key(), String.valueOf(JOhmUtils.getId(persistedModel)));
-    											}
-    										}
-    									}
-    								}
-    							}
-    						}
-    					}
-
-    					if (field.isAnnotationPresent(Array.class)) {
-    						field.setAccessible(true);
-    						Array annotation = field.getAnnotation(Array.class);
-    						RedisArray redisArray = new RedisArray(annotation
-    								.length(), annotation.of(), nest, field,
-    								persistedModel);
-    						redisArray.clear();
-    					}
-    				}
-
-    				if (cleanupChildren) {
-    					for (Field field : JOhmUtils.gatherAllFields(clazz)) {
-    						if (field.isAnnotationPresent(Reference.class)) {
-    							field.setAccessible(true);
-    							try {
-    								Object child = field.get(persistedModel);
-    								if (child != null) {
-    									cleanUpForSave(child.getClass(),
-    											JOhmUtils.getId(child), memberToBeRemovedFromSet,
-    											memberToBeRemovedFromSortedSet,
-    											cleanupChildren); // children
-    								}
-    							} catch (IllegalArgumentException e) {
-    								throw new JOhmException(
-    										e,
-    										JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
-    							} catch (IllegalAccessException e) {
-    								throw new JOhmException(e,
-    										JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
-    							}
     						}
     					}
     				}

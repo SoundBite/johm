@@ -49,126 +49,86 @@ public final class JOhmUtils {
         }
         
         ModelMetaData metaDataOfClass = JOhm.models.get(model.getClass().getSimpleName());
+        Collection<Field> fields = new ArrayList<Field>();
+        boolean isCollectionList = false;
+        boolean isCollectionSet = false;
+        boolean isCollectionSortedSet = false;
+        boolean isCollectionMap = false;
         if (metaDataOfClass != null) {
-        	String fieldNameForCache = null;
-        	Collection<Field> fields = metaDataOfClass.allFields.values();
-        	for (Field field : fields) {
-                field.setAccessible(true);
-                fieldNameForCache = field.getName();
-                try {
-                    if (metaDataOfClass.collectionListFields.containsKey(fieldNameForCache)) {
-                        Validator.checkValidCollection(field);
-                        List<Object> list = (List<Object>) field.get(model);
-                        if (list == null) {
-                            CollectionList annotation = field
-                                    .getAnnotation(CollectionList.class);
-                            RedisList<Object> redisList = new RedisList<Object>(
-                                    annotation.of(), nest, field, model);
-                            field.set(model, redisList);
-                        }
-                    }
-                    if (metaDataOfClass.collectionSetFields.containsKey(fieldNameForCache)) {
-                        Validator.checkValidCollection(field);
-                        Set<Object> set = (Set<Object>) field.get(model);
-                        if (set == null) {
-                            CollectionSet annotation = field
-                                    .getAnnotation(CollectionSet.class);
-                            RedisSet<Object> redisSet = new RedisSet<Object>(
-                                    annotation.of(), nest, field, model);
-                            field.set(model, redisSet);
-                        }
-                    }
-                    if (metaDataOfClass.collectionSortedSetFields.containsKey(fieldNameForCache)) {
-                        Validator.checkValidCollection(field);
-                        Set<Object> sortedSet = (Set<Object>) field.get(model);
-                        if (sortedSet == null) {
-                            CollectionSortedSet annotation = field
-                                    .getAnnotation(CollectionSortedSet.class);
-                            RedisSortedSet<Object> redisSortedSet = new RedisSortedSet<Object>(
-                                    annotation.of(), annotation.by(), nest, field,
-                                    model);
-                            field.set(model, redisSortedSet);
-                        }
-                    }
-                    if (metaDataOfClass.collectionMapFields.containsKey(fieldNameForCache)) {
-                        Validator.checkValidCollection(field);
-                        Map<Object, Object> map = (Map<Object, Object>) field
-                                .get(model);
-                        if (map == null) {
-                            CollectionMap annotation = field
-                                    .getAnnotation(CollectionMap.class);
-                            RedisMap<Object, Object> redisMap = new RedisMap<Object, Object>(
-                                    annotation.key(), annotation.value(), nest,
-                                    field, model);
-                            field.set(model, redisMap);
-                        }
-                    }
-                } catch (IllegalArgumentException e) {
-                	throw new JOhmException(e,
-                            JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
-                } catch (IllegalAccessException e) {
-                	throw new JOhmException(e,
-                            JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
-                }
-            }
-        } else{
-        	for (Field field : model.getClass().getDeclaredFields()) {
-        		field.setAccessible(true);
-        		try {
-        			if (field.isAnnotationPresent(CollectionList.class)) {
-        				Validator.checkValidCollection(field);
-        				List<Object> list = (List<Object>) field.get(model);
-        				if (list == null) {
-        					CollectionList annotation = field
-        							.getAnnotation(CollectionList.class);
-        					RedisList<Object> redisList = new RedisList<Object>(
-        							annotation.of(), nest, field, model);
-        					field.set(model, redisList);
-        				}
+        	 fields = metaDataOfClass.allFields.values();
+        }else{
+        	fields = gatherAllFields(model.getClass());
+        }
+
+        String fieldNameForCache = null;
+        for (Field field : fields) {
+        	field.setAccessible(true);
+        	fieldNameForCache = field.getName();
+        	if (metaDataOfClass != null) {
+        		isCollectionList = metaDataOfClass.collectionListFields.containsKey(fieldNameForCache);
+        		isCollectionSet = metaDataOfClass.collectionSetFields.containsKey(fieldNameForCache);
+        		isCollectionSortedSet = metaDataOfClass.collectionSortedSetFields.containsKey(fieldNameForCache);
+        		isCollectionMap = metaDataOfClass.collectionMapFields.containsKey(fieldNameForCache);
+        	}else{
+        		isCollectionList = field.isAnnotationPresent(CollectionList.class);
+        		isCollectionSet = field.isAnnotationPresent(CollectionSet.class);
+        		isCollectionSortedSet = field.isAnnotationPresent(CollectionSortedSet.class);
+        		isCollectionMap = field.isAnnotationPresent(CollectionMap.class);
+        	}
+        	try {
+        		if (isCollectionList) {
+        			Validator.checkValidCollection(field);
+        			List<Object> list = (List<Object>) field.get(model);
+        			if (list == null) {
+        				CollectionList annotation = field
+        						.getAnnotation(CollectionList.class);
+        				RedisList<Object> redisList = new RedisList<Object>(
+        						annotation.of(), nest, field, model);
+        				field.set(model, redisList);
         			}
-        			if (field.isAnnotationPresent(CollectionSet.class)) {
-        				Validator.checkValidCollection(field);
-        				Set<Object> set = (Set<Object>) field.get(model);
-        				if (set == null) {
-        					CollectionSet annotation = field
-        							.getAnnotation(CollectionSet.class);
-        					RedisSet<Object> redisSet = new RedisSet<Object>(
-        							annotation.of(), nest, field, model);
-        					field.set(model, redisSet);
-        				}
-        			}
-        			if (field.isAnnotationPresent(CollectionSortedSet.class)) {
-        				Validator.checkValidCollection(field);
-        				Set<Object> sortedSet = (Set<Object>) field.get(model);
-        				if (sortedSet == null) {
-        					CollectionSortedSet annotation = field
-        							.getAnnotation(CollectionSortedSet.class);
-        					RedisSortedSet<Object> redisSortedSet = new RedisSortedSet<Object>(
-        							annotation.of(), annotation.by(), nest, field,
-        							model);
-        					field.set(model, redisSortedSet);
-        				}
-        			}
-        			if (field.isAnnotationPresent(CollectionMap.class)) {
-        				Validator.checkValidCollection(field);
-        				Map<Object, Object> map = (Map<Object, Object>) field
-        						.get(model);
-        				if (map == null) {
-        					CollectionMap annotation = field
-        							.getAnnotation(CollectionMap.class);
-        					RedisMap<Object, Object> redisMap = new RedisMap<Object, Object>(
-        							annotation.key(), annotation.value(), nest,
-        							field, model);
-        					field.set(model, redisMap);
-        				}
-        			}
-        		} catch (IllegalArgumentException e) {
-        			throw new JOhmException(e,
-                            JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
-        		} catch (IllegalAccessException e) {
-        			throw new JOhmException(e,
-                            JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
         		}
+        		if (isCollectionSet) {
+        			Validator.checkValidCollection(field);
+        			Set<Object> set = (Set<Object>) field.get(model);
+        			if (set == null) {
+        				CollectionSet annotation = field
+        						.getAnnotation(CollectionSet.class);
+        				RedisSet<Object> redisSet = new RedisSet<Object>(
+        						annotation.of(), nest, field, model);
+        				field.set(model, redisSet);
+        			}
+        		}
+        		if (isCollectionSortedSet) {
+        			Validator.checkValidCollection(field);
+        			Set<Object> sortedSet = (Set<Object>) field.get(model);
+        			if (sortedSet == null) {
+        				CollectionSortedSet annotation = field
+        						.getAnnotation(CollectionSortedSet.class);
+        				RedisSortedSet<Object> redisSortedSet = new RedisSortedSet<Object>(
+        						annotation.of(), annotation.by(), nest, field,
+        						model);
+        				field.set(model, redisSortedSet);
+        			}
+        		}
+        		if (isCollectionMap) {
+        			Validator.checkValidCollection(field);
+        			Map<Object, Object> map = (Map<Object, Object>) field
+        					.get(model);
+        			if (map == null) {
+        				CollectionMap annotation = field
+        						.getAnnotation(CollectionMap.class);
+        				RedisMap<Object, Object> redisMap = new RedisMap<Object, Object>(
+        						annotation.key(), annotation.value(), nest,
+        						field, model);
+        				field.set(model, redisMap);
+        			}
+        		}
+        	} catch (IllegalArgumentException e) {
+        		throw new JOhmException(e,
+        				JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
+        	} catch (IllegalAccessException e) {
+        		throw new JOhmException(e,
+        				JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
         	}
         }
     }
@@ -177,46 +137,40 @@ public final class JOhmUtils {
         if (model != null) {
             boolean idFieldPresent = false;
             ModelMetaData metaDataOfClass = JOhm.models.get(model.getClass().getSimpleName());
+            Collection<Field> fields = new ArrayList<Field>();
+            boolean isIdField = false;
             if (metaDataOfClass != null) {
-            	  String fieldNameForCache = null;
-            	  Collection<Field> fieldsOfClass = metaDataOfClass.allFields.values();
-            	  for (Field field : fieldsOfClass) {
-                      field.setAccessible(true);
-                      fieldNameForCache = field.getName();
-                      if (metaDataOfClass.idField.equals(fieldNameForCache)) {
-                          idFieldPresent = true;
-                          Validator.checkValidIdType(field);
-                          try {
-                              field.set(model, id);
-                          } catch (IllegalArgumentException e) {
-                              throw new JOhmException(e,
-                                      JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
-                          } catch (IllegalAccessException e) {
-                              throw new JOhmException(e,
-                                      JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
-                          }
-                          break;
-                      }
-                  }
-            }else {
-            	for (Field field : model.getClass().getDeclaredFields()) {
-            		field.setAccessible(true);
-            		if (field.isAnnotationPresent(Id.class)) {
-            			idFieldPresent = true;
-            			Validator.checkValidIdType(field);
-            			try {
-            				field.set(model, id);
-            			} catch (IllegalArgumentException e) {
-            				throw new JOhmException(e,
-            						JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
-            			} catch (IllegalAccessException e) {
-            				throw new JOhmException(e,
-            						JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
-            			}
-            			break;
+            	fields = metaDataOfClass.allFields.values();
+           
+            }else{
+            	fields = gatherAllFields(model.getClass());
+            }
+            String fieldNameForCache = null;
+            for (Field field : fields) {
+            	field.setAccessible(true);
+            	fieldNameForCache = field.getName();
+            	if (metaDataOfClass != null) {
+            		isIdField = metaDataOfClass.idField.equals(fieldNameForCache);
+            	}else{
+            		isIdField =field.isAnnotationPresent(Id.class);
+            	}
+
+            	if (isIdField) {
+            		idFieldPresent = true;
+            		Validator.checkValidIdType(field);
+            		try {
+            			field.set(model, id);
+            		} catch (IllegalArgumentException e) {
+            			throw new JOhmException(e,
+            					JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
+            		} catch (IllegalAccessException e) {
+            			throw new JOhmException(e,
+            					JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
             		}
+            		break;
             	}
             }
+
             if (!idFieldPresent) {
                 throw new JOhmException(
                         "JOhm does not support a Model without an Id",
@@ -425,44 +379,30 @@ public final class JOhmUtils {
         static Long checkValidId(final Object model) {
             Long id = null;
             boolean idFieldPresent = false;
+            boolean isIdField = false;
             ModelMetaData metaDataOfClass = JOhm.models.get(model.getClass().getSimpleName());
-            if (metaDataOfClass != null) {
-            	String fieldNameForCache = null;
-            	for (Field field : model.getClass().getDeclaredFields()) {
-            		field.setAccessible(true);
-            		fieldNameForCache = field.getName();
-            		if (metaDataOfClass.idField.equals(fieldNameForCache)) {
-            			Validator.checkValidIdType(field);
-            			try {
-            				id = (Long) field.get(model);
-            				idFieldPresent = true;
-            			} catch (IllegalArgumentException e) {
-            				throw new JOhmException(e,
-            						JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
-            			} catch (IllegalAccessException e) {
-            				throw new JOhmException(e,
-            						JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
-            			}
-            			break;
-            		}
+            String fieldNameForCache = null;
+            for (Field field : model.getClass().getDeclaredFields()) {
+            	field.setAccessible(true);
+            	fieldNameForCache = field.getName();
+            	if (metaDataOfClass != null) {
+            		isIdField = metaDataOfClass.idField.equals(fieldNameForCache);
+            	}else {
+            		isIdField =  field.isAnnotationPresent(Id.class);
             	}
-            }else{
-            	for (Field field : model.getClass().getDeclaredFields()) {
-            		field.setAccessible(true);
-            		if (field.isAnnotationPresent(Id.class)) {
-            			Validator.checkValidIdType(field);
-            			try {
-            				id = (Long) field.get(model);
-            				idFieldPresent = true;
-            			} catch (IllegalArgumentException e) {
-            				throw new JOhmException(e,
-            						JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
-            			} catch (IllegalAccessException e) {
-            				throw new JOhmException(e,
-            						JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
-            			}
-            			break;
+            	if (isIdField) {
+            		Validator.checkValidIdType(field);
+            		try {
+            			id = (Long) field.get(model);
+            			idFieldPresent = true;
+            		} catch (IllegalArgumentException e) {
+            			throw new JOhmException(e,
+            					JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
+            		} catch (IllegalAccessException e) {
+            			throw new JOhmException(e,
+            					JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
             		}
+            		break;
             	}
             }
             if (!idFieldPresent) {
@@ -528,41 +468,39 @@ public final class JOhmUtils {
         static void checkValidCollection(final Field field) {
             boolean isList = false, isSet = false, isMap = false, isSortedSet = false;
             ModelMetaData metaDataOfClass = JOhm.models.get(field.getClass().getSimpleName());
+            boolean isCollectionList = false;
+            boolean isCollectionSet = false;
+            boolean isCollectionSortedSet = false;
+            boolean isCollectionMap = false;
             if (metaDataOfClass != null) {
-            	if (metaDataOfClass.collectionListFields.containsKey(field.getName())) {
-            		checkValidCollectionList(field);
-            		isList = true;
-            	}
-            	if (metaDataOfClass.collectionSetFields.containsKey(field.getName())) {
-            		checkValidCollectionSet(field);
-            		isSet = true;
-            	}
-            	if (metaDataOfClass.collectionSortedSetFields.containsKey(field.getName())) {
-            		checkValidCollectionSortedSet(field);
-            		isSortedSet = true;
-            	}
-            	if (metaDataOfClass.collectionMapFields.containsKey(field.getName())) {
-            		checkValidCollectionMap(field);
-            		isMap = true;
-            	}
+            	isCollectionList = metaDataOfClass.collectionListFields.containsKey(field.getName());
+            	isCollectionSet = metaDataOfClass.collectionSetFields.containsKey(field.getName());
+            	isCollectionSortedSet = metaDataOfClass.collectionSortedSetFields.containsKey(field.getName());
+            	isCollectionMap = metaDataOfClass.collectionMapFields.containsKey(field.getName());
             }else{
-            	if (field.isAnnotationPresent(CollectionList.class)) {
-            		checkValidCollectionList(field);
-            		isList = true;
-            	}
-            	if (field.isAnnotationPresent(CollectionSet.class)) {
-            		checkValidCollectionSet(field);
-            		isSet = true;
-            	}
-            	if (field.isAnnotationPresent(CollectionSortedSet.class)) {
-            		checkValidCollectionSortedSet(field);
-            		isSortedSet = true;
-            	}
-            	if (field.isAnnotationPresent(CollectionMap.class)) {
-            		checkValidCollectionMap(field);
-            		isMap = true;
-            	}
+            	isCollectionList = field.isAnnotationPresent(CollectionList.class);
+            	isCollectionSet = field.isAnnotationPresent(CollectionSet.class);
+            	isCollectionSortedSet = field.isAnnotationPresent(CollectionSortedSet.class);
+            	isCollectionMap = field.isAnnotationPresent(CollectionMap.class);
             }
+            
+            if (isCollectionList) {
+            	checkValidCollectionList(field);
+            	isList = true;
+            }
+            if (isCollectionSet) {
+            	checkValidCollectionSet(field);
+            	isSet = true;
+            }
+            if (isCollectionSortedSet) {
+            	checkValidCollectionSortedSet(field);
+            	isSortedSet = true;
+            }
+            if (isCollectionMap) {
+            	checkValidCollectionMap(field);
+            	isMap = true;
+            }
+            
             if (isList && isSet && isMap && isSortedSet) {
                 throw new JOhmException(
                         field.getName()

@@ -13,7 +13,7 @@ import redis.clients.johm.models.Item;
 import redis.clients.johm.models.User;
 
 public class SearchTest extends JOhmTestBase {
-	@Test(expected = InvalidFieldException.class)
+	@Test(expected = JOhmException.class)
 	public void cannotSearchOnNullField() {
 		User user1 = new User();
 		user1.setName("model1");
