@@ -24,7 +24,7 @@ public class SearchTest extends JOhmTestBase {
 		JOhm.find(User.class, null, "foo");
 	}
 
-	@Test(expected = InvalidFieldException.class)
+	@Test(expected = JOhmException.class)
 	public void cannotSearchWithNullValue() {
 		User user1 = new User();
 		user1.setName("model1");
@@ -35,7 +35,7 @@ public class SearchTest extends JOhmTestBase {
 		JOhm.find(User.class, "age", null);
 	}
 
-	@Test(expected = InvalidFieldException.class)
+	@Test(expected = JOhmException.class)
 	public void cannotSearchWithOnNotIndexedFields() {
 		User user1 = new User();
 		user1.setName("model1");

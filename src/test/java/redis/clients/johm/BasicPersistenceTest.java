@@ -222,7 +222,7 @@ public class BasicPersistenceTest extends JOhmTestBase {
         assertNull(savedUser.getRoom());
     }
 
-    @Test(expected = MissingIdException.class)
+    @Test(expected = JOhmException.class)
     public void shouldFailWhenReferenceWasNotSaved() {
         User user = new User();
         user.setName("bar");

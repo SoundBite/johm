@@ -104,9 +104,11 @@ public final class JOhmUtils {
                         }
                     }
                 } catch (IllegalArgumentException e) {
-                    throw new InvalidFieldException();
+                	throw new JOhmException(e,
+                            JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
                 } catch (IllegalAccessException e) {
-                    throw new InvalidFieldException();
+                	throw new JOhmException(e,
+                            JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
                 }
             }
         } else{
@@ -161,9 +163,11 @@ public final class JOhmUtils {
         				}
         			}
         		} catch (IllegalArgumentException e) {
-        			throw new InvalidFieldException();
+        			throw new JOhmException(e,
+                            JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
         		} catch (IllegalAccessException e) {
-        			throw new InvalidFieldException();
+        			throw new JOhmException(e,
+                            JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
         		}
         	}
         }
@@ -223,11 +227,21 @@ public final class JOhmUtils {
 
     static boolean detectJOhmCollection(final Field field) {
         boolean isJOhmCollection = false;
-        if (field.isAnnotationPresent(CollectionList.class)
-                || field.isAnnotationPresent(CollectionSet.class)
-                || field.isAnnotationPresent(CollectionSortedSet.class)
-                || field.isAnnotationPresent(CollectionMap.class)) {
-            isJOhmCollection = true;
+        ModelMetaData metaDataOfClass = JOhm.models.get(field.getClass().getSimpleName());
+        if (metaDataOfClass != null) {
+        	if (metaDataOfClass.collectionListFields.containsKey(field.getName())
+        			|| metaDataOfClass.collectionSetFields.containsKey(field.getName())
+        			|| metaDataOfClass.collectionSortedSetFields.containsKey(field.getName())
+        			|| metaDataOfClass.collectionMapFields.containsKey(field.getName())) {
+        		isJOhmCollection = true;
+        	}
+        }else{
+        	if (field.isAnnotationPresent(CollectionList.class)
+        			|| field.isAnnotationPresent(CollectionSet.class)
+        			|| field.isAnnotationPresent(CollectionSortedSet.class)
+        			|| field.isAnnotationPresent(CollectionMap.class)) {
+        		isJOhmCollection = true;
+        	}
         }
         return isJOhmCollection;
     }
@@ -411,22 +425,45 @@ public final class JOhmUtils {
         static Long checkValidId(final Object model) {
             Long id = null;
             boolean idFieldPresent = false;
-            for (Field field : model.getClass().getDeclaredFields()) {
-                field.setAccessible(true);
-                if (field.isAnnotationPresent(Id.class)) {
-                    Validator.checkValidIdType(field);
-                    try {
-                        id = (Long) field.get(model);
-                        idFieldPresent = true;
-                    } catch (IllegalArgumentException e) {
-                        throw new JOhmException(e,
-                                JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
-                    } catch (IllegalAccessException e) {
-                        throw new JOhmException(e,
-                                JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
-                    }
-                    break;
-                }
+            ModelMetaData metaDataOfClass = JOhm.models.get(model.getClass().getSimpleName());
+            if (metaDataOfClass != null) {
+            	String fieldNameForCache = null;
+            	for (Field field : model.getClass().getDeclaredFields()) {
+            		field.setAccessible(true);
+            		fieldNameForCache = field.getName();
+            		if (metaDataOfClass.idField.equals(fieldNameForCache)) {
+            			Validator.checkValidIdType(field);
+            			try {
+            				id = (Long) field.get(model);
+            				idFieldPresent = true;
+            			} catch (IllegalArgumentException e) {
+            				throw new JOhmException(e,
+            						JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
+            			} catch (IllegalAccessException e) {
+            				throw new JOhmException(e,
+            						JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
+            			}
+            			break;
+            		}
+            	}
+            }else{
+            	for (Field field : model.getClass().getDeclaredFields()) {
+            		field.setAccessible(true);
+            		if (field.isAnnotationPresent(Id.class)) {
+            			Validator.checkValidIdType(field);
+            			try {
+            				id = (Long) field.get(model);
+            				idFieldPresent = true;
+            			} catch (IllegalArgumentException e) {
+            				throw new JOhmException(e,
+            						JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
+            			} catch (IllegalAccessException e) {
+            				throw new JOhmException(e,
+            						JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
+            			}
+            			break;
+            		}
+            	}
             }
             if (!idFieldPresent) {
                 throw new JOhmException(
@@ -473,11 +510,14 @@ public final class JOhmUtils {
         }
 
         static void checkValidModelClazz(final Class<?> modelClazz) {
-            if (!modelClazz.isAnnotationPresent(Model.class)) {
-                throw new JOhmException(
-                        "Class pretending to be a Model but is not really annotated",
-                        JOhmExceptionMeta.MISSING_MODEL_ANNOTATION);
-            }
+        	ModelMetaData metaDataOfClass = JOhm.models.get(modelClazz.getSimpleName());
+        	if (metaDataOfClass == null) {
+        		if (!modelClazz.isAnnotationPresent(Model.class)) {
+        			throw new JOhmException(
+        					"Class pretending to be a Model but is not really annotated",
+        					JOhmExceptionMeta.MISSING_MODEL_ANNOTATION);
+        		}
+        	}
             if (modelClazz.isInterface()) {
                 throw new JOhmException(
                         "An interface cannot be annotated as a Model",
@@ -487,21 +527,41 @@ public final class JOhmUtils {
 
         static void checkValidCollection(final Field field) {
             boolean isList = false, isSet = false, isMap = false, isSortedSet = false;
-            if (field.isAnnotationPresent(CollectionList.class)) {
-                checkValidCollectionList(field);
-                isList = true;
-            }
-            if (field.isAnnotationPresent(CollectionSet.class)) {
-                checkValidCollectionSet(field);
-                isSet = true;
-            }
-            if (field.isAnnotationPresent(CollectionSortedSet.class)) {
-                checkValidCollectionSortedSet(field);
-                isSortedSet = true;
-            }
-            if (field.isAnnotationPresent(CollectionMap.class)) {
-                checkValidCollectionMap(field);
-                isMap = true;
+            ModelMetaData metaDataOfClass = JOhm.models.get(field.getClass().getSimpleName());
+            if (metaDataOfClass != null) {
+            	if (metaDataOfClass.collectionListFields.containsKey(field.getName())) {
+            		checkValidCollectionList(field);
+            		isList = true;
+            	}
+            	if (metaDataOfClass.collectionSetFields.containsKey(field.getName())) {
+            		checkValidCollectionSet(field);
+            		isSet = true;
+            	}
+            	if (metaDataOfClass.collectionSortedSetFields.containsKey(field.getName())) {
+            		checkValidCollectionSortedSet(field);
+            		isSortedSet = true;
+            	}
+            	if (metaDataOfClass.collectionMapFields.containsKey(field.getName())) {
+            		checkValidCollectionMap(field);
+            		isMap = true;
+            	}
+            }else{
+            	if (field.isAnnotationPresent(CollectionList.class)) {
+            		checkValidCollectionList(field);
+            		isList = true;
+            	}
+            	if (field.isAnnotationPresent(CollectionSet.class)) {
+            		checkValidCollectionSet(field);
+            		isSet = true;
+            	}
+            	if (field.isAnnotationPresent(CollectionSortedSet.class)) {
+            		checkValidCollectionSortedSet(field);
+            		isSortedSet = true;
+            	}
+            	if (field.isAnnotationPresent(CollectionMap.class)) {
+            		checkValidCollectionMap(field);
+            		isMap = true;
+            	}
             }
             if (isList && isSet && isMap && isSortedSet) {
                 throw new JOhmException(
@@ -553,9 +613,19 @@ public final class JOhmUtils {
         }
 
         static void checkAttributeReferenceIndexRules(final Field field) {
-            boolean isAttribute = field.isAnnotationPresent(Attribute.class);
-            boolean isReference = field.isAnnotationPresent(Reference.class);
-            boolean isIndexed = field.isAnnotationPresent(Indexed.class);
+        	ModelMetaData metaDataOfClass = JOhm.models.get(field.getClass().getSimpleName());
+        	boolean isAttribute = false;
+        	boolean isReference = false;
+        	boolean isIndexed = false;
+        	if (metaDataOfClass != null) {
+        		isAttribute = metaDataOfClass.attributeFields.containsKey(field.getName());
+        		isReference = metaDataOfClass.referenceFields.containsKey(field.getName());
+        		isIndexed =  metaDataOfClass.indexedFields.containsKey(field.getName());
+        	}else{
+        		isAttribute = field.isAnnotationPresent(Attribute.class);
+        		isReference = field.isAnnotationPresent(Reference.class);
+        		isIndexed = field.isAnnotationPresent(Indexed.class);
+        	}
             if (isAttribute) {
                 if (isReference) {
                     throw new JOhmException(
@@ -565,7 +635,8 @@ public final class JOhmUtils {
                 }
                 if (isIndexed) {
                     if (!isIndexable(field.getName())) {
-                        throw new InvalidFieldException();
+                    	throw new JOhmException(new InvalidFieldException(),
+                                JOhmExceptionMeta.MISSING_INDEXED_ANNOTATION);
                     }
                 }
                 if (field.getType().equals(Model.class)) {
