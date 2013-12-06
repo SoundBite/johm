@@ -1,5 +1,6 @@
 package redis.clients.johm;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -733,6 +734,7 @@ public final class JOhm {
     			fieldNameForCache = field.getName();
     			field.setAccessible(true);
     			metaData.allFields.put(fieldNameForCache, field);
+    			metaData.annotatedFields.put(fieldNameForCache, field.getAnnotations());
     			if (JOhmUtils.detectJOhmCollection(field)
     					|| field.isAnnotationPresent(Id.class)) {
     				if (field.isAnnotationPresent(Id.class)) {
@@ -863,6 +865,7 @@ public final class JOhm {
     				childfieldName = childField.getName();
     				childField.setAccessible(true);
     				childMetaData.allFields.put(childfieldName, childField);
+    				childMetaData.annotatedFields.put(childfieldName, childField.getAnnotations());
     				boolean isAttributeFieldOfChild = childField.isAnnotationPresent(Attribute.class);
     				boolean isIndexedFieldOfChild = childField.isAnnotationPresent(Indexed.class);
     				boolean isComparableFieldOfChild = childField.isAnnotationPresent(Comparable.class);
@@ -1425,6 +1428,7 @@ public final class JOhm {
     	Map<String, Field> allFields = new HashMap<String, Field>();
     	Map<String, Field> indexedFields = new HashMap<String, Field>();
     	Map<String, Field> comparableFields = new HashMap<String, Field>();
+    	Map<String, Annotation[]> annotatedFields = new HashMap<String, Annotation[]>();
     	Map<String, ModelMetaData> referenceClasses = new HashMap<String, ModelMetaData>();
     	String idField = null;
     }

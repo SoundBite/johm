@@ -414,8 +414,14 @@ public final class JOhmUtils {
         }
 
         static void checkValidIdType(final Field field) {
-            Annotation[] annotations = field.getAnnotations();
-            if (annotations.length > 1) {
+        	ModelMetaData metaDataOfClass = JOhm.models.get(field.getClass().getSimpleName());
+        	Annotation[] annotations =  null;
+        	if (metaDataOfClass != null) {
+        		annotations = metaDataOfClass.annotatedFields.get(field.getName());
+        	}else{
+        		annotations = field.getAnnotations();
+        	}
+            if (annotations != null && annotations.length > 1) {
                 for (Annotation annotation : annotations) {
                     Class<?> annotationType = annotation.annotationType();
                     if (annotationType.equals(Id.class)) {
