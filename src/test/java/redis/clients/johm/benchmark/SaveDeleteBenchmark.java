@@ -13,6 +13,8 @@ public class SaveDeleteBenchmark extends JOhmBenchmarkTestBase {
         User user = null;
         for (int n = 0; n < totalOps; n++) {
             user = new User();
+            user.setEmployeeNumber(1);
+            user.setDepartmentNumber(2);
             user.setName("foo" + n);
             user.setRoom("vroom" + n);
             user.setAge(99);

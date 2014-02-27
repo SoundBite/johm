@@ -12,6 +12,8 @@ public class SaveGetBenchmark extends JOhmBenchmarkTestBase {
         timer.begin();
         for (int n = 0; n < totalOps; n++) {
             User user = new User();
+            user.setEmployeeNumber(1);
+            user.setDepartmentNumber(2);
             user.setName("foo" + n);
             user.setRoom("vroom" + n);
             JOhm.save(user);

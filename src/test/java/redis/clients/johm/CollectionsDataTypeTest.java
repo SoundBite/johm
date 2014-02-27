@@ -74,9 +74,13 @@ public class CollectionsDataTypeTest extends JOhmTestBase {
 
         // K = Model, V = Model
         User user1 = new User();
+        user1.setEmployeeNumber(1);
+        user1.setDepartmentNumber(2);
         user1.setName("Happy");
         JOhm.save(user1);
         User user2 = new User();
+        user2.setEmployeeNumber(1);
+        user2.setDepartmentNumber(2);
         user2.setName("Frightened");
         JOhm.save(user2);
 

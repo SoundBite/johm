@@ -13,16 +13,20 @@ public class SaveSearchBenchmark extends JOhmBenchmarkTestBase {
         User user = null;
         for (int n = 0; n < totalOps; n++) {
             user = new User();
+            user.setEmployeeNumber(1);
+            user.setDepartmentNumber(2);
             user.setName("foo" + n);
             user.setRoom("vroom" + n);
             user.setAge(n);
             user.setSalary(9999.99f);
             user.setInitial('f');
             JOhm.save(user);
-            JOhm.find(User.class, "name", "foo" + n);
-            JOhm.find(User.class, "age", n);
+            JOhm.find(User.class, "name", "foo" + n, JOhm.getHashTag("employeeNumber", "1"));
+            JOhm.find(User.class, "age", n, JOhm.getHashTag("employeeNumber", "1"));
+            JOhm.find(User.class, "name", "foo" + n, JOhm.getHashTag("departmentNumber", "2"));
+            JOhm.find(User.class, "age", n, JOhm.getHashTag("departmentNumber", "2"));
         }
         timer.end();
-        printStats("saveSearchModel", totalOps, 3, timer.elapsed());
+        printStats("saveSearchModel", totalOps, 5, timer.elapsed());
     }
 }

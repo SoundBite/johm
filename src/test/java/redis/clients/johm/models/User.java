@@ -10,6 +10,7 @@ import redis.clients.johm.CollectionList;
 import redis.clients.johm.CollectionMap;
 import redis.clients.johm.CollectionSet;
 import redis.clients.johm.CollectionSortedSet;
+import redis.clients.johm.HashTag;
 import redis.clients.johm.Id;
 import redis.clients.johm.Indexed;
 import redis.clients.johm.Model;
@@ -20,6 +21,17 @@ import redis.clients.johm.Comparable;
 public class User {
     @Id
     private Long id;
+    
+    @Attribute
+    @Indexed
+    @HashTag
+    private Integer employeeNumber;
+    
+    @Attribute
+    @Indexed
+    @HashTag
+    private Integer departmentNumber;
+    
     @Attribute
     @Indexed
     private String name;
@@ -125,7 +137,15 @@ public class User {
         this.age = age;
     }
 
-    public float getSalary() {
+    public int getEmployeeNumber() {
+		return employeeNumber;
+	}
+
+	public void setEmployeeNumber(int employeeNumber) {
+		this.employeeNumber = employeeNumber;
+	}
+
+	public float getSalary() {
         return salary;
     }
 
@@ -141,7 +161,15 @@ public class User {
         this.initial = initial;
     }
 
-    @Override
+    public Integer getDepartmentNumber() {
+		return departmentNumber;
+	}
+
+	public void setDepartmentNumber(Integer departmentNumber) {
+		this.departmentNumber = departmentNumber;
+	}
+
+	@Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;

@@ -15,6 +15,8 @@ public class CollectionsTest extends JOhmTestBase {
     @Test
     public void shouldSetCollectionAutomatically() {
         User user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         JOhm.save(user);
         assertNotNull(user.getLikes());
         assertTrue(user.getLikes().getClass().equals(RedisList.class));
@@ -33,6 +35,8 @@ public class CollectionsTest extends JOhmTestBase {
         JOhm.save(item);
 
         User user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         JOhm.save(user);
         user.getLikes().add(item);
 
@@ -54,6 +58,8 @@ public class CollectionsTest extends JOhmTestBase {
         JOhm.save(item1);
 
         User user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         JOhm.save(user);
         user.getLikes().add(item1);
 
@@ -97,6 +103,8 @@ public class CollectionsTest extends JOhmTestBase {
         JOhm.save(item);
 
         User user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         JOhm.save(user);
         user.getPurchases().add(item);
 
@@ -116,6 +124,8 @@ public class CollectionsTest extends JOhmTestBase {
         JOhm.save(item1);
 
         User user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         JOhm.save(user);
         user.getPurchases().add(item1);
 
@@ -157,6 +167,8 @@ public class CollectionsTest extends JOhmTestBase {
         JOhm.save(item2);
 
         User user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         JOhm.save(user);
         user.getFavoritePurchases().put(1, item2);
         user.getFavoritePurchases().put(2, item1);
@@ -186,6 +198,8 @@ public class CollectionsTest extends JOhmTestBase {
         JOhm.save(item2);
 
         User user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         JOhm.save(user);
         user.getFavoritePurchases().put(1, item2);
         user.getFavoritePurchases().put(2, item1);
@@ -221,6 +235,8 @@ public class CollectionsTest extends JOhmTestBase {
     @Test
     public void persistSortedSets() {
         User user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         user.setName("foo");
         JOhm.save(user);
 

@@ -594,6 +594,26 @@ public final class JOhmUtils {
                 checkValidReference(field);
             }
         }
+        
+        static void checkHashTagRules(final Field field) {
+        	ModelMetaData metaDataOfClass = JOhm.models.get(field.getClass().getSimpleName());
+        	boolean isAttribute = false;
+        	boolean isHashTag = false;
+        	if (metaDataOfClass != null) {
+        		isAttribute = metaDataOfClass.attributeFields.containsKey(field.getName());
+        		isHashTag = metaDataOfClass.hashTaggedFields.containsKey(field.getName());
+        	}else{
+        		isAttribute = field.isAnnotationPresent(Attribute.class);
+        		isHashTag = field.isAnnotationPresent(HashTag.class);
+        	}
+
+        	if (isHashTag && !isAttribute) {
+        		throw new JOhmException(
+        				field.getName()
+        				+ " has HashTag annotation but is not attribute which is invalid",
+        				JOhmExceptionMeta.INVALID_HASH_TAG);
+        	}
+        }
 
         public static boolean checkSupportedPrimitiveClazz(
                 final Class<?> primitiveClazz) {

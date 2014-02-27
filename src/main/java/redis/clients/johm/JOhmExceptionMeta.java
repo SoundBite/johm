@@ -22,11 +22,13 @@ public enum JOhmExceptionMeta {
     MISSING_COMPARABLE_ANNOTATION("Field pretending to be comparable does not have Comparable annotation"),
     INVALID_MODEL_ANNOTATION("Interface cannot be annotated as a Model"),
     INVALID_ATTRIBUTE_AND_REFERENCE("Field is both an Attribute and Reference which is invalid"),
+    INVALID_HASH_TAG("Field is HashTag and is not an attribute"),
     INVALID_ATTRIBUTE_AND_MODEL("Field is both an Attribute and Model which is invalid"),
     INVALID_VALUE("Value provided is not valid, it is either null or empty"),
     INVALID_INDEX("Field is not indexable based on type"),
     INVALID_COLLECTION_SUBTYPE("Field is invalid subtype of its corresponding Collection super-interface"),
     INVALID_COLLECTION_ANNOTATION("Field has invalid Collection annotations"),
+    NULL_OR_EMPTY_VALUE_HASH_TAG("Field is HashTag and has null or empty value"),
     INVALID_ARRAY_BOUNDS("Field has an actual length greater that annotated array bound");
 
     private final String message;

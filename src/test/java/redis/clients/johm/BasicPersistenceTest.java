@@ -3,7 +3,6 @@ package redis.clients.johm;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import redis.clients.johm.models.Country;
@@ -15,6 +14,8 @@ public class BasicPersistenceTest extends JOhmTestBase {
     @Test
     public void save() {
         User user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         user.setName("foo");
         user.setRoom("vroom");
         user = JOhm.save(user);
@@ -27,10 +28,11 @@ public class BasicPersistenceTest extends JOhmTestBase {
         assertEquals(user.getAge(), savedUser.getAge());
     }
 
-    @Ignore
     @Test
     public void transactedSave() {
     	User user = new User();
+    	user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
     	user.setName("foo");
     	user.setRoom("vroom");
     	user.setAge(10);
@@ -38,8 +40,12 @@ public class BasicPersistenceTest extends JOhmTestBase {
 
     	assertNotNull(user);
 
-    	List<User> users =  JOhm.find(User.class, false, new NVField("name","foo"));
+    	List<User> users =  JOhm.find(User.class, false, new NVField("employeeNumber",1), new NVField("name","foo"));
     	User returnedUser = users.get(0);
+    	
+    	users =  JOhm.find(User.class, false, new NVField("departmentNumber",2), new NVField("name","foo"));
+     	returnedUser = users.get(0);
+     	
     	returnedUser.setName("foo1");
     	JOhm.transactedSave(returnedUser);
 
@@ -50,7 +56,6 @@ public class BasicPersistenceTest extends JOhmTestBase {
     	assertEquals(returnedUser.getAge(), savedUser.getAge());
     }
 
-    @Ignore
     @Test
     public void transactedSaveWithReferences() {
     	Country somewhere = new Country();
@@ -58,6 +63,8 @@ public class BasicPersistenceTest extends JOhmTestBase {
     	JOhm.save(somewhere);
 
     	User user = new User();
+    	user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
     	user.setName("foo");
     	user.setRoom("vroom");
     	user.setCountry(somewhere);
@@ -65,8 +72,12 @@ public class BasicPersistenceTest extends JOhmTestBase {
 
     	assertNotNull(user);
 
-    	List<User> users =  JOhm.find(User.class, false, new NVField("name","foo"));
+    	List<User> users =  JOhm.find(User.class, false, new NVField("employeeNumber",1),  new NVField("name","foo"));
     	assertEquals(1, users.size());
+    	
+    	users =  JOhm.find(User.class, false, new NVField("departmentNumber",2),  new NVField("name","foo"));
+    	assertEquals(1, users.size());
+    	
     	User returnedUser = users.get(0);
     	returnedUser.setName("foo1");
     	JOhm.transactedSave(returnedUser);
@@ -77,8 +88,12 @@ public class BasicPersistenceTest extends JOhmTestBase {
     	assertEquals(returnedUser.getId(), savedUser.getId());
     	assertEquals(returnedUser.getAge(), savedUser.getAge());
 
-    	List<User> gotUsers=JOhm.find(User.class,false,new NVField("name", "foo1"), new NVField("country","name", "somewhere"));
+    	List<User> gotUsers=JOhm.find(User.class,false, new NVField("employeeNumber",1), new NVField("name", "foo1"), new NVField("country","name", "somewhere"));
     	assertEquals(1, gotUsers.size());
+    	
+    	gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("name", "foo1"), new NVField("country","name", "somewhere"));
+    	assertEquals(1, gotUsers.size());
+    	
     	returnedUser = users.get(0);
     	assertEquals(returnedUser.getName(), savedUser.getName());
     	assertNull(savedUser.getRoom());
@@ -101,6 +116,8 @@ public class BasicPersistenceTest extends JOhmTestBase {
         JOhm.save(item2);
 
         User user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         user.setName("foo");
         user.setRoom("vroom");
         user.setThreeLatestPurchases(new Item[] { item0, item1, item2 });
@@ -131,6 +148,8 @@ public class BasicPersistenceTest extends JOhmTestBase {
     @Test
     public void saveWithOtherValueTypes() {
         User user1 = new User();
+        user1.setEmployeeNumber(1);
+        user1.setDepartmentNumber(2);
         user1.setName("foo");
         user1.setRoom("vroom");
         user1.setAge(99);
@@ -139,6 +158,8 @@ public class BasicPersistenceTest extends JOhmTestBase {
         user1 = JOhm.save(user1);
 
         User user2 = new User();
+        user2.setEmployeeNumber(1);
+        user2.setDepartmentNumber(2);
         user2.setName("foo2");
         user2.setRoom("vroom2");
         user2.setAge(9);
@@ -146,6 +167,8 @@ public class BasicPersistenceTest extends JOhmTestBase {
         user2 = JOhm.save(user2);
 
         User user3 = new User();
+        user3.setEmployeeNumber(1);
+        user3.setDepartmentNumber(2);
         user3.setName("foo3");
         user3.setRoom("vroom3");
         user3.setAge(19);
@@ -194,6 +217,8 @@ public class BasicPersistenceTest extends JOhmTestBase {
     @Test
     public void delete() {
         User user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         JOhm.save(user);
         Long id = user.getId();
 
@@ -202,6 +227,8 @@ public class BasicPersistenceTest extends JOhmTestBase {
         assertNull(JOhm.get(User.class, id));
 
         user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         JOhm.save(user);
         id = user.getId();
 
@@ -213,6 +240,8 @@ public class BasicPersistenceTest extends JOhmTestBase {
     @Test
     public void shouldNotPersistFieldsWithoutAttributeAnnotation() {
         User user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         user.setName("foo");
         user.setRoom("3A");
         JOhm.save(user);
@@ -246,6 +275,8 @@ public class BasicPersistenceTest extends JOhmTestBase {
     @Test
     public void shouldHandleReferences() {
         User user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         user.setName("foo");
         user.setRoom("3A");
         JOhm.save(user);
@@ -258,6 +289,8 @@ public class BasicPersistenceTest extends JOhmTestBase {
         JOhm.save(somewhere);
 
         user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         user.setName("bar");
         user.setCountry(somewhere);
         JOhm.save(user);
@@ -271,9 +304,13 @@ public class BasicPersistenceTest extends JOhmTestBase {
     @Test
     public void getAll() {
         User user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         user.setName("foo");
         JOhm.save(user);
         user = new User();
+        user.setEmployeeNumber(1);
+        user.setDepartmentNumber(2);
         user.setName("foo1");
         JOhm.save(user);
 

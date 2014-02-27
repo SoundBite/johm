@@ -15,17 +15,21 @@ public class SaveRangeSearchBenchmark extends JOhmBenchmarkTestBase {
 		User user = null;
 		for (int n = 0; n < totalOps; n++) {
 			user = new User();
+			user.setEmployeeNumber(1);
+			user.setDepartmentNumber(2);
 			user.setName("foo" + n);
 			user.setRoom("vroom" + n);
 			user.setAge(n);
 			user.setSalary(9999.99f);
 			user.setInitial('f');
 			JOhm.save(user);
-			JOhm.find(User.class, false, new NVField("name", "foo" + n));
-			JOhm.find(User.class, false, new NVField("age", n));
+			JOhm.find(User.class, false, new NVField("employeeNumber",1), new NVField("name", "foo" + n));
+			JOhm.find(User.class, false, new NVField("employeeNumber",1), new NVField("age", n));
+			JOhm.find(User.class, false, new NVField("departmentNumber",2), new NVField("name", "foo" + n));
+			JOhm.find(User.class, false, new NVField("departmentNumber",2), new NVField("age", n));
 		}
 		timer.end();
-		printStats("saveSearchModel", totalOps, 3, timer.elapsed());
+		printStats("saveSearchModel", totalOps, 5, timer.elapsed());
 	}
 
 	@Test
@@ -35,17 +39,21 @@ public class SaveRangeSearchBenchmark extends JOhmBenchmarkTestBase {
 		User user = null;
 		for (int n = 0; n < totalOps; n++) {
 			user = new User();
+			user.setEmployeeNumber(1);
+			user.setDepartmentNumber(2);
 			user.setName("foo" + n);
 			user.setRoom("vroom" + n);
 			user.setAge(n);
 			user.setSalary(9999.99f + n);
 			user.setInitial('f');
 			JOhm.save(user);
-			JOhm.find(User.class, true, new NVField("age", n, Condition.GREATERTHANEQUALTO));
-			JOhm.find(User.class, true, new NVField("salary", 9999.99f + n, Condition.GREATERTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("employeeNumber",1), new NVField("age", n, Condition.GREATERTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("employeeNumber",1), new NVField("salary", 9999.99f + n, Condition.GREATERTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("departmentNumber",2), new NVField("age", n, Condition.GREATERTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("departmentNumber",2), new NVField("salary", 9999.99f + n, Condition.GREATERTHANEQUALTO));
 		}
 		timer.end();
-		printStats("saveRangeSearchModelWithOnlyGreaterThanCondition", totalOps, 3, timer.elapsed());
+		printStats("saveRangeSearchModelWithOnlyGreaterThanCondition", totalOps, 5, timer.elapsed());
 	}
 	
 	@Test
@@ -55,17 +63,21 @@ public class SaveRangeSearchBenchmark extends JOhmBenchmarkTestBase {
 		User user = null;
 		for (int n = 0; n < totalOps; n++) {
 			user = new User();
+			user.setEmployeeNumber(1);
+			user.setDepartmentNumber(2);
 			user.setName("foo" + n);
 			user.setRoom("vroom" + n);
 			user.setAge(n);
 			user.setSalary(9999.99f + n);
 			user.setInitial('f');
 			JOhm.save(user);
-			JOhm.find(User.class, true, new NVField("name", "foo" + n), new NVField("age", n, Condition.GREATERTHANEQUALTO));
-			JOhm.find(User.class, true, new NVField("name", "foo" + n), new NVField("salary", 9999.99f + n, Condition.GREATERTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("employeeNumber",1), new NVField("name", "foo" + n), new NVField("age", n, Condition.GREATERTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("employeeNumber",1), new NVField("name", "foo" + n), new NVField("salary", 9999.99f + n, Condition.GREATERTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("departmentNumber",2), new NVField("name", "foo" + n), new NVField("age", n, Condition.GREATERTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("departmentNumber",2), new NVField("name", "foo" + n), new NVField("salary", 9999.99f + n, Condition.GREATERTHANEQUALTO));
 		}
 		timer.end();
-		printStats("saveRangeSearchModelWithGreaterThanCondition", totalOps, 3, timer.elapsed());
+		printStats("saveRangeSearchModelWithGreaterThanCondition", totalOps, 5, timer.elapsed());
 	}
 	
 	@Test
@@ -75,17 +87,21 @@ public class SaveRangeSearchBenchmark extends JOhmBenchmarkTestBase {
 		User user = null;
 		for (int n = 0; n < totalOps; n++) {
 			user = new User();
+			user.setEmployeeNumber(1);
+			user.setDepartmentNumber(2);
 			user.setName("foo" + n);
 			user.setRoom("vroom" + n);
 			user.setAge(n);
 			user.setSalary(9999.99f + n);
 			user.setInitial('f');
 			JOhm.save(user);
-			JOhm.find(User.class, true, new NVField("name", "foo" + n), new NVField("age", n, Condition.LESSTHANEQUALTO));
-			JOhm.find(User.class, true, new NVField("name", "foo" + n), new NVField("salary", 9999.99f + n, Condition.LESSTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("employeeNumber",1), new NVField("name", "foo" + n), new NVField("age", n, Condition.LESSTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("employeeNumber",1), new NVField("name", "foo" + n), new NVField("salary", 9999.99f + n, Condition.LESSTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("departmentNumber",2), new NVField("name", "foo" + n), new NVField("age", n, Condition.GREATERTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("departmentNumber",2), new NVField("name", "foo" + n), new NVField("salary", 9999.99f + n, Condition.GREATERTHANEQUALTO));
 		}
 		timer.end();
-		printStats("saveRangeSearchModelWithLessThanCondition", totalOps, 3, timer.elapsed());
+		printStats("saveRangeSearchModelWithLessThanCondition", totalOps, 5, timer.elapsed());
 	}
 	
 	@Test
@@ -95,16 +111,20 @@ public class SaveRangeSearchBenchmark extends JOhmBenchmarkTestBase {
 		User user = null;
 		for (int n = 0; n < totalOps; n++) {
 			user = new User();
+			user.setEmployeeNumber(1);
+			user.setDepartmentNumber(2);
 			user.setName("foo" + n);
 			user.setRoom("vroom" + n);
 			user.setAge(n);
 			user.setSalary(9999.99f + n);
 			user.setInitial('f');
 			JOhm.save(user);
-			JOhm.find(User.class, true, new NVField("age", n, Condition.LESSTHANEQUALTO));
-			JOhm.find(User.class, true, new NVField("salary", 9999.99f + n, Condition.LESSTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("employeeNumber",1), new NVField("age", n, Condition.LESSTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("employeeNumber",1), new NVField("salary", 9999.99f + n, Condition.LESSTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("departmentNumber",2), new NVField("age", n, Condition.LESSTHANEQUALTO));
+			JOhm.find(User.class, true, new NVField("departmentNumber",2), new NVField("salary", 9999.99f + n, Condition.LESSTHANEQUALTO));
 		}
 		timer.end();
-		printStats("saveRangeSearchModelWithOnlyLessThanCondition", totalOps, 3, timer.elapsed());
+		printStats("saveRangeSearchModelWithOnlyLessThanCondition", totalOps, 5, timer.elapsed());
 	}
 }
