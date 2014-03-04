@@ -12,7 +12,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.TransactionBlock;
 import redis.clients.jedis.ZParams;
 import redis.clients.jedis.exceptions.JedisException;
@@ -643,17 +645,17 @@ public final class JOhm {
      * @return
      */
     public static <T> T save(final Object model) {
-        return JOhm.<T> save(model, false, false);
+        return JOhm.<T> save(model, false, false, true);
     }
-
+ 
     @SuppressWarnings("unchecked")
-    public static <T> T save(final Object model, boolean saveChildren, boolean doMulti) {
+    public static <T> T save(final Object model, boolean saveChildren, boolean doMulti, boolean usePipeline) {
     	
     	//Delete if exists
     	final Map<String, String> memberToBeRemovedFromSets = new HashMap<String, String>();
     	final Map<String, String> memberToBeRemovedFromSortedSets = new HashMap<String, String>();
         if (!isNew(model)) {
-        	cleanUpForSave(model.getClass(), JOhmUtils.getId(model), memberToBeRemovedFromSets, memberToBeRemovedFromSortedSets, saveChildren);
+        	feedCleanupData(model.getClass(), JOhmUtils.getId(model), memberToBeRemovedFromSets, memberToBeRemovedFromSortedSets, saveChildren);
         }
         
         //Initialize id and collections
@@ -674,8 +676,8 @@ public final class JOhm {
         //Always add to the all set, to support getAll
         memberToBeAddedToSets.put(nest.cat("all").key(), String.valueOf(JOhmUtils.getId(model)));
         
-        //Do redis transaction
-        if (doMulti) {
+        //TODO: multi with pipeline
+        if (doMulti) {//Do redis transaction
         	nest.multi(new TransactionBlock() {
         		public void execute() throws JedisException {
         			String memberOfSet = null;
@@ -701,35 +703,71 @@ public final class JOhm {
         		}
         	});
         }else{
-        	String memberOfSet = null;
-        	Nest nestForSet = null;
-        	for (String key: memberToBeRemovedFromSets.keySet()) {
-        		memberOfSet = memberToBeRemovedFromSets.get(key);
-        		nestForSet = new Nest(key);
-        		nestForSet.setJedisPool(jedisPool);
-        		nestForSet.srem(memberOfSet);
+        	if (usePipeline) {
+        		Nest nestForPipeline = new Nest();
+        		nestForPipeline.setJedisPool(jedisPool);
+          		Jedis jedis = null;
+        		try{
+        			jedis = nestForPipeline.getResource();
+        			Pipeline pipeline = nestForPipeline.pipelined(jedis);
+
+        			String memberOfSet = null;
+        			String keyForId = nest.cat(JOhmUtils.getId(model)).key();
+        			for (String key: memberToBeRemovedFromSets.keySet()) {
+        				memberOfSet = memberToBeRemovedFromSets.get(key);
+        				pipeline.srem(key, memberOfSet);
+        			}
+        			for (String key: memberToBeRemovedFromSortedSets.keySet()) {
+        				memberOfSet = memberToBeRemovedFromSortedSets.get(key);
+        				pipeline.zrem(key, memberOfSet);
+        			}
+        			pipeline.del(keyForId);
+        			for (String key: memberToBeAddedToSets.keySet()) {
+        				memberOfSet = memberToBeAddedToSets.get(key);
+        				pipeline.sadd(key, memberOfSet);
+        			}
+        			ScoreField scoreField = null;
+        			for (String key: memberToBeAddedToSortedSets.keySet()) {
+        				scoreField = memberToBeAddedToSortedSets.get(key);
+        				pipeline.zadd(key, scoreField.getScore(), scoreField.getMember());
+        			}
+        			pipeline.hmset(keyForId, hashedObject);
+        			pipeline.sync();
+        		}finally {
+        			if (jedis != null) 
+        				nestForPipeline.returnResource(jedis);
+        		}
+        	}else{
+        		String memberOfSet = null;
+        		Nest nestForSet = null;
+        		for (String key: memberToBeRemovedFromSets.keySet()) {
+        			memberOfSet = memberToBeRemovedFromSets.get(key);
+        			nestForSet = new Nest(key);
+        			nestForSet.setJedisPool(jedisPool);
+        			nestForSet.srem(memberOfSet);
+        		}
+        		for (String key: memberToBeRemovedFromSortedSets.keySet()) {
+        			memberOfSet = memberToBeRemovedFromSortedSets.get(key);
+        			nestForSet = new Nest(key);
+        			nestForSet.setJedisPool(jedisPool);
+        			nestForSet.zrem(memberOfSet);
+        		}
+        		nest.cat(JOhmUtils.getId(model)).del();
+        		for (String key: memberToBeAddedToSets.keySet()) {
+        			memberOfSet = memberToBeAddedToSets.get(key);
+        			nestForSet = new Nest(key);
+        			nestForSet.setJedisPool(jedisPool);
+        			nestForSet.sadd(memberOfSet);
+        		}
+        		ScoreField scoreField = null;
+        		for (String key: memberToBeAddedToSortedSets.keySet()) {
+        			scoreField = memberToBeAddedToSortedSets.get(key);
+        			nestForSet = new Nest(key);
+        			nestForSet.setJedisPool(jedisPool);
+        			nestForSet.zadd(scoreField.getScore(), scoreField.getMember());
+        		}
+        		nest.cat(JOhmUtils.getId(model)).hmset(hashedObject);
         	}
-        	for (String key: memberToBeRemovedFromSortedSets.keySet()) {
-        		memberOfSet = memberToBeRemovedFromSortedSets.get(key);
-        		nestForSet = new Nest(key);
-        		nestForSet.setJedisPool(jedisPool);
-        		nestForSet.zrem(memberOfSet);
-        	}
-        	nest.cat(JOhmUtils.getId(model)).del();
-        	for (String key: memberToBeAddedToSets.keySet()) {
-        		memberOfSet = memberToBeAddedToSets.get(key);
-        		nestForSet = new Nest(key);
-        		nestForSet.setJedisPool(jedisPool);
-        		nestForSet.sadd(memberOfSet);
-        	}
-        	ScoreField scoreField = null;
-        	for (String key: memberToBeAddedToSortedSets.keySet()) {
-        		scoreField = memberToBeAddedToSortedSets.get(key);
-        		nestForSet = new Nest(key);
-        		nestForSet.setJedisPool(jedisPool);
-        		nestForSet.zadd(scoreField.getScore(), scoreField.getMember());
-        	}
-        	nest.cat(JOhmUtils.getId(model)).hmset(hashedObject);
         }
 
         if (pendingArraysToPersist != null && pendingArraysToPersist.size() > 0) {
@@ -820,7 +858,7 @@ public final class JOhm {
     	                            JOhmExceptionMeta.MISSING_MODEL_ID);
     					}
     					if (saveChildren) {
-    						save(child, saveChildren, false); // some more work to do
+    						save(child, saveChildren, false, false); // some more work to do
     					}
     					hashedObject.put(fieldName, String.valueOf(JOhmUtils
     							.getId(child)));
@@ -1062,7 +1100,7 @@ public final class JOhm {
     								JOhmExceptionMeta.MISSING_MODEL_ID);
     					}
     					if (saveChildren) {
-    						save(child, saveChildren, false); // some more work to do
+    						save(child, saveChildren, false, false); // some more work to do
     					}
     					hashedObject.put(fieldName, String.valueOf(JOhmUtils
     							.getId(child)));
@@ -1229,7 +1267,7 @@ public final class JOhm {
     	final Map<String, String> memberToBeRemovedFromSets = new HashMap<String, String>();
     	final Map<String, String> memberToBeRemovedFromSortedSets = new HashMap<String, String>();
     	if (!isNew(model)) {
-    		cleanUpForSave(model.getClass(), JOhmUtils.getId(model), memberToBeRemovedFromSets, memberToBeRemovedFromSortedSets, false);
+    		feedCleanupData(model.getClass(), JOhmUtils.getId(model), memberToBeRemovedFromSets, memberToBeRemovedFromSortedSets, false);
     	}
 
     	//Initialize
@@ -1309,7 +1347,7 @@ public final class JOhm {
     	boolean deleted = false;
 
     	try{
-    		cleanUpForSave(clazz, id, memberToBeRemovedFromSets, memberToBeRemovedFromSortedSets, false);
+    		feedCleanupData(clazz, id, memberToBeRemovedFromSets, memberToBeRemovedFromSortedSets, false);
 
     		ModelMetaData metaDataOfClass = JOhm.models.get(clazz.getSimpleName());
            	Collection<Field> fields = new ArrayList<Field>();
@@ -1320,51 +1358,51 @@ public final class JOhm {
             	fields = JOhmUtils.gatherAllFields(clazz);
             }
             
-        	Object persistedModel = get(clazz, id);
-        	
-    		if (deleteIndexes) {
-    			String memberOfSet = null;
-    			Nest nestForSet = null;
-    			for (String key: memberToBeRemovedFromSets.keySet()) {
-    				memberOfSet = memberToBeRemovedFromSets.get(key);
-    				nestForSet = new Nest(key);
-    				nestForSet.setJedisPool(jedisPool);
-    				nestForSet.srem(memberOfSet);
-    			}
-    			for (String key: memberToBeRemovedFromSortedSets.keySet()) {
-    				memberOfSet = memberToBeRemovedFromSortedSets.get(key);
-    				nestForSet = new Nest(key);
-    				nestForSet.setJedisPool(jedisPool);
-    				nestForSet.zrem(memberOfSet);
-    			}
-    		}
+            if (deleteIndexes) {
+            	String memberOfSet = null;
+            	Nest nestForSet = null;
+            	for (String key: memberToBeRemovedFromSets.keySet()) {
+            		memberOfSet = memberToBeRemovedFromSets.get(key);
+            		nestForSet = new Nest(key);
+            		nestForSet.setJedisPool(jedisPool);
+            		nestForSet.srem(memberOfSet);
+            	}
+            	for (String key: memberToBeRemovedFromSortedSets.keySet()) {
+            		memberOfSet = memberToBeRemovedFromSortedSets.get(key);
+            		nestForSet = new Nest(key);
+            		nestForSet.setJedisPool(jedisPool);
+            		nestForSet.zrem(memberOfSet);
+            	}
+            }
 
-    		if (persistedModel != null) {
-    			if (deleteChildren) {
-    				Object child = null;
-    				for (Field field : fields) {
-    					field.setAccessible(true);
-    					if (metaDataOfClass != null) {
-    						isReference = metaDataOfClass.referenceFields.containsKey(field.getName());
-    					}else{
-    						isReference = field.isAnnotationPresent(Reference.class);
-    					}
+            Object persistedModel = get(clazz, id);
 
-    					if (isReference) {
-    						child = field.get(persistedModel);
-    						if (child != null) {
-    							delete(child.getClass(),
-    									JOhmUtils.getId(child), deleteIndexes,
-    									deleteChildren); // children
-    						}
-    					}
-    				}
-    			}
+            if (persistedModel != null) {
+            	if (deleteChildren) {
+            		Object child = null;
+            		for (Field field : fields) {
+            			field.setAccessible(true);
+            			if (metaDataOfClass != null) {
+            				isReference = metaDataOfClass.referenceFields.containsKey(field.getName());
+            			}else{
+            				isReference = field.isAnnotationPresent(Reference.class);
+            			}
 
-    			Nest nest = new Nest(persistedModel);
-    			nest.setJedisPool(jedisPool);
-    			deleted = nest.cat(id).del() == 1;
-    		}
+            			if (isReference) {
+            				child = field.get(persistedModel);
+            				if (child != null) {
+            					delete(child.getClass(),
+            							JOhmUtils.getId(child), deleteIndexes,
+            							deleteChildren); // children
+            				}
+            			}
+            		}
+            	}
+
+            	Nest nest = new Nest(persistedModel);
+            	nest.setJedisPool(jedisPool);
+            	deleted = nest.cat(id).del() == 1;
+            }
     	} catch (IllegalArgumentException e) {
     		throw new JOhmException(
     				e,
@@ -1377,7 +1415,7 @@ public final class JOhm {
     }
 
     @SuppressWarnings("unchecked")
-    private static Map<String, String> cleanUpForSave(Class<?> clazz, long id, Map<String, String> memberToBeRemovedFromSet, Map<String, String> memberToBeRemovedFromSortedSet, boolean cleanupChildren) {
+    private static void feedCleanupData(Class<?> clazz, long id, Map<String, String> memberToBeRemovedFromSet, Map<String, String> memberToBeRemovedFromSortedSet, boolean cleanupChildren) {
     	JOhmUtils.Validator.checkValidModelClazz(clazz);
     	Object persistedModel = get(clazz, id);
     	if (persistedModel != null) {
@@ -1581,7 +1619,7 @@ public final class JOhm {
     						field.setAccessible(true);
     						Object child = field.get(persistedModel);
     						if (child != null) {
-    							cleanUpForSave(child.getClass(),
+    							feedCleanupData(child.getClass(),
     									JOhmUtils.getId(child), memberToBeRemovedFromSet,
     									memberToBeRemovedFromSortedSet,
     									cleanupChildren); // children
@@ -1598,7 +1636,6 @@ public final class JOhm {
     					JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
     		}
     	}
-    	return memberToBeRemovedFromSet;
     }
 
     /**
