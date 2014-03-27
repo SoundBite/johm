@@ -1335,81 +1335,78 @@ public final class JOhm {
      * @return
      */
     public static boolean delete(Class<?> clazz, long id) {
-        return delete(clazz, id, true, false);
+        return delete(clazz, id, true, false, true);
     }
 
     @SuppressWarnings("unchecked")
     public static boolean delete(Class<?> clazz, long id,
-    		boolean deleteIndexes, boolean deleteChildren) {
+    		boolean deleteIndexes, boolean deleteChildren, boolean usePipeline) {
 
     	final Map<String, String> memberToBeRemovedFromSets = new HashMap<String, String>();
     	final Map<String, String> memberToBeRemovedFromSortedSets = new HashMap<String, String>();
     	boolean deleted = false;
 
     	try{
-    		feedCleanupData(clazz, id, memberToBeRemovedFromSets, memberToBeRemovedFromSortedSets, false);
+    		feedCleanupData(clazz, id, memberToBeRemovedFromSets, memberToBeRemovedFromSortedSets, deleteChildren);
+    		Object persistedModel = get(clazz, id);
 
-    		ModelMetaData metaDataOfClass = JOhm.models.get(clazz.getSimpleName());
-           	Collection<Field> fields = new ArrayList<Field>();
-        	boolean isReference = false;
-            if (metaDataOfClass != null) {
-            	fields = metaDataOfClass.allFields.values();
-            }else{
-            	fields = JOhmUtils.gatherAllFields(clazz);
-            }
-            
-            if (deleteIndexes) {
-            	String memberOfSet = null;
-            	Nest nestForSet = null;
-            	for (String key: memberToBeRemovedFromSets.keySet()) {
-            		memberOfSet = memberToBeRemovedFromSets.get(key);
-            		nestForSet = new Nest(key);
-            		nestForSet.setJedisPool(jedisPool);
-            		nestForSet.srem(memberOfSet);
-            	}
-            	for (String key: memberToBeRemovedFromSortedSets.keySet()) {
-            		memberOfSet = memberToBeRemovedFromSortedSets.get(key);
-            		nestForSet = new Nest(key);
-            		nestForSet.setJedisPool(jedisPool);
-            		nestForSet.zrem(memberOfSet);
-            	}
-            }
+    		if (persistedModel != null) {
+    			if (usePipeline) {
+    				Nest nestForPipeline = new Nest();
+    				nestForPipeline.setJedisPool(jedisPool);
+    				Jedis jedis = null;
+    				try{
+    					jedis = nestForPipeline.getResource();
+    					Pipeline pipeline = nestForPipeline.pipelined(jedis);
 
-            Object persistedModel = get(clazz, id);
+    					if (deleteIndexes) {
+    						String memberOfSet = null;
+    						for (String key: memberToBeRemovedFromSets.keySet()) {
+    							memberOfSet = memberToBeRemovedFromSets.get(key);
+    							pipeline.srem(key, memberOfSet);
+    						}
+    						for (String key: memberToBeRemovedFromSortedSets.keySet()) {
+    							memberOfSet = memberToBeRemovedFromSortedSets.get(key);
+    							pipeline.zrem(key, memberOfSet);
+    						}
+    					}
+    					Nest nest = new Nest(persistedModel);
+    					String keyForId = nest.cat(JOhmUtils.getId(persistedModel)).key();
+    					pipeline.del(keyForId);
+    					pipeline.sync();
+    				}finally {
+    					if (jedis != null) 
+    						nestForPipeline.returnResource(jedis);
+    				}
+    				
+    				deleted =  true;
+    			}else{
+    				if (deleteIndexes) {
+    					String memberOfSet = null;
+    					Nest nestForSet = null;
+    					for (String key: memberToBeRemovedFromSets.keySet()) {
+    						memberOfSet = memberToBeRemovedFromSets.get(key);
+    						nestForSet = new Nest(key);
+    						nestForSet.setJedisPool(jedisPool);
+    						nestForSet.srem(memberOfSet);
+    					}
+    					for (String key: memberToBeRemovedFromSortedSets.keySet()) {
+    						memberOfSet = memberToBeRemovedFromSortedSets.get(key);
+    						nestForSet = new Nest(key);
+    						nestForSet.setJedisPool(jedisPool);
+    						nestForSet.zrem(memberOfSet);
+    					}
+    				}
 
-            if (persistedModel != null) {
-            	if (deleteChildren) {
-            		Object child = null;
-            		for (Field field : fields) {
-            			field.setAccessible(true);
-            			if (metaDataOfClass != null) {
-            				isReference = metaDataOfClass.referenceFields.containsKey(field.getName());
-            			}else{
-            				isReference = field.isAnnotationPresent(Reference.class);
-            			}
-
-            			if (isReference) {
-            				child = field.get(persistedModel);
-            				if (child != null) {
-            					delete(child.getClass(),
-            							JOhmUtils.getId(child), deleteIndexes,
-            							deleteChildren); // children
-            				}
-            			}
-            		}
-            	}
-
-            	Nest nest = new Nest(persistedModel);
-            	nest.setJedisPool(jedisPool);
-            	deleted = nest.cat(id).del() == 1;
-            }
+    				Nest nest = new Nest(persistedModel);
+    				nest.setJedisPool(jedisPool);
+    				deleted = nest.cat(id).del() == 1;
+    			}
+    		}
     	} catch (IllegalArgumentException e) {
     		throw new JOhmException(
     				e,
     				JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
-    	} catch (IllegalAccessException e) {
-    		throw new JOhmException(e,
-    				JOhmExceptionMeta.ILLEGAL_ACCESS_EXCEPTION);
     	}
     	return deleted;
     }
@@ -1627,6 +1624,9 @@ public final class JOhm {
     					}
     				}
     			}
+    			
+    			//Always add to the all set, to support getAll
+    			memberToBeRemovedFromSet.put(nest.cat("all").key(), String.valueOf(JOhmUtils.getId(persistedModel)));
     		} catch (IllegalArgumentException e) {
     			throw new JOhmException(
     					e,
