@@ -13,7 +13,7 @@ public class NestTest extends JOhmTestBase {
     @Test
     public void checkKeyGeneration() throws TimeoutException {
         Nest users = new Nest("users");
-        users.setJedisPool(jedisPool);
+        users.setJedisPool(jedisPool, false);
         assertEquals("users", users.key());
         assertEquals("users:123", users.cat(123).key());
         assertEquals("users:123:name", users.cat(123).cat("name").key());
@@ -29,7 +29,7 @@ public class NestTest extends JOhmTestBase {
     @Test
     public void checkMultipleKeys() throws TimeoutException {
         Nest users = new Nest("users");
-        users.setJedisPool(jedisPool);
+        users.setJedisPool(jedisPool, false);
         users.cat(123).cat("name");
         users.next();
         users.cat(456).cat("perm");

@@ -5,19 +5,19 @@ package redis.clients.johm;
  * It is used for sorted sets.
  */
 public class ScoreField {
+	private String key;
 	private Double score;
-	private String member;
-
-	public ScoreField(Double score, String member) {
+		
+	public ScoreField(String key, Double score) {
 		this.score=score;
-		this.member =member;
+		this.key = key;
 	}
-
+	
+	public String getKey() {
+		return key;
+	}
+	
 	public Double getScore() {
 		return score;
-	}
-
-	public String getMember() {
-		return member;
-	}
+	}	
 }
