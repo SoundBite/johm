@@ -2,6 +2,8 @@ package redis.clients.johm;
 
 import java.util.Arrays;
 import java.util.List;
+
+import org.junit.Ignore;
 import org.junit.Test;
 
 import redis.clients.johm.NVField.Condition;
@@ -554,11 +556,11 @@ public class SearchTest extends JOhmTestBase {
 	public void canDoMultiFindWithTransactedSave() {
 		Address someWhereAddress = new Address();
 		someWhereAddress.setStreetName("xyz");
-		JOhm.transactedSave(someWhereAddress);
+		JOhm.save(someWhereAddress);
 
 		Country somewhere = new Country();
 		somewhere.setName("somewhere");
-		JOhm.transactedSave(somewhere);
+		JOhm.save(somewhere);
 
 		User user=new User();
 		user.setEmployeeNumber(1);
@@ -568,7 +570,7 @@ public class SearchTest extends JOhmTestBase {
 		user.setSalary(2000f);
 		user.setAddress(someWhereAddress);
 		user.setCountry(somewhere);
-		JOhm.transactedSave(user);
+		JOhm.save(user);
 
 		user=new User();
 		user.setEmployeeNumber(1);
@@ -576,7 +578,7 @@ public class SearchTest extends JOhmTestBase {
 		user.setAge(55);
 		user.setSalary(1000f);
 		user.setName("f");
-		JOhm.transactedSave(user);
+		JOhm.save(user);
 
 		user=new User();    
 		user.setEmployeeNumber(1);
@@ -585,7 +587,7 @@ public class SearchTest extends JOhmTestBase {
 		user.setSalary(3000f);
 		user.setName("f");
 		user.setCountry(somewhere);
-		JOhm.transactedSave(user);
+		JOhm.save(user);
 
 		user=new User();  
 		user.setEmployeeNumber(1);
@@ -593,7 +595,7 @@ public class SearchTest extends JOhmTestBase {
 		user.setAge(55);
 		user.setSalary(2000f);
 		user.setName("b");
-		JOhm.transactedSave(user);
+		JOhm.save(user);
 
 		user=new User();
 		user.setEmployeeNumber(1);
@@ -601,7 +603,7 @@ public class SearchTest extends JOhmTestBase {
 		user.setAge(49);
 		user.setSalary(6000f);
 		user.setName("m");
-		JOhm.transactedSave(user);
+		JOhm.save(user);
 
 		List<User> gotUsers=JOhm.find(User.class,false, new NVField("employeeNumber",1), new NVField("age",88), new NVField("name","b"));
 		assertEquals(1,gotUsers.size());
@@ -831,11 +833,11 @@ public class SearchTest extends JOhmTestBase {
 		Address someWhereAddress = new Address();
 		someWhereAddress.setStreetName("xyz");
 		someWhereAddress.setHouseNumber(12);
-		JOhm.transactedSave(someWhereAddress);
+		JOhm.save(someWhereAddress);
 
 		Country somewhere = new Country();
 		somewhere.setName("somewhere");
-		JOhm.transactedSave(somewhere);
+		JOhm.save(somewhere);
 
 		User user=new User();
 		user.setEmployeeNumber(1);
@@ -845,7 +847,7 @@ public class SearchTest extends JOhmTestBase {
 		user.setSalary(2000f);
 		user.setAddress(someWhereAddress);
 		user.setCountry(somewhere);
-		JOhm.transactedSave(user);
+		JOhm.save(user);
 
 		Long idOfUser1 = user.getId();
 
@@ -856,7 +858,7 @@ public class SearchTest extends JOhmTestBase {
 		user.setSalary(1000f);
 		user.setName("f");
 		user.setCountry(somewhere);
-		JOhm.transactedSave(user);
+		JOhm.save(user);
 
 		user=new User();   
 		user.setEmployeeNumber(1);
@@ -864,7 +866,7 @@ public class SearchTest extends JOhmTestBase {
 		user.setAge(88);
 		user.setSalary(3000f);
 		user.setName("f");
-		JOhm.transactedSave(user);
+		JOhm.save(user);
 
 		user=new User();
 		user.setEmployeeNumber(1);
@@ -872,7 +874,7 @@ public class SearchTest extends JOhmTestBase {
 		user.setAge(55);
 		user.setSalary(2000f);
 		user.setName("b");
-		JOhm.transactedSave(user);
+		JOhm.save(user);
 
 		user=new User();
 		user.setEmployeeNumber(1);
@@ -880,9 +882,10 @@ public class SearchTest extends JOhmTestBase {
 		user.setAge(49);
 		user.setSalary(6000f);
 		user.setName("m");
-		JOhm.transactedSave(user);
+		JOhm.save(user);
 
-		List<User> gotUsers=JOhm.find(User.class,false, new NVField("employeeNumber",1), new NVField("age", 55, Condition.LESSTHANEQUALTO), new NVField("name","b"));
+		List<User> gotUsers = null;
+		gotUsers=JOhm.find(User.class,false, new NVField("employeeNumber",1), new NVField("age", 55, Condition.LESSTHANEQUALTO), new NVField("name","b"));
 		assertEquals(1,gotUsers.size());
 
 		gotUsers=JOhm.find(User.class,false,  new NVField("employeeNumber",1), new NVField("age", 55, Condition.LESSTHANEQUALTO));

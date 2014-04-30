@@ -1001,12 +1001,10 @@ public class Nest<T> {
 	}
 
 	public Pipeline pipelined(Jedis jedis) {
-		jedis = getResource();
 		return jedis.pipelined();
 	}
 
 	public ShardedJedisPipeline shardedJedisPipelined(ShardedJedis jedis) {
-		jedis = getShardedResource();
 		return jedis.pipelined();
 }
 

@@ -10,6 +10,7 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Protocol;
 
 public class JOhmTestBase extends Assert {
+	  Boolean isSharded = false;
     protected JedisPool jedisPool;
     protected volatile static boolean benchmarkMode;
 
@@ -19,14 +20,17 @@ public class JOhmTestBase extends Assert {
     }
 
     protected void startJedisEngine() {
+    	if(!isSharded){
         if (benchmarkMode) {
             jedisPool = new JedisPool(new GenericObjectPoolConfig(), "localhost",
                     Protocol.DEFAULT_PORT, 2000);
         } else {
             jedisPool = new JedisPool(new GenericObjectPoolConfig(), "localhost");
         }
-        JOhm.setPool(jedisPool);
-        purgeRedis();
+       
+    	}
+    	JOhm.setPool(jedisPool);
+    	purgeRedis();
     }
 
     protected void purgeRedis() {

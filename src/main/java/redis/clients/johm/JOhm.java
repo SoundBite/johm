@@ -757,11 +757,7 @@ public final class JOhm {
 		// Always add to the all set, to support getAll
 		memberToBeAddedToSets.put(nest.cat("all").key(),
 		    String.valueOf(JOhmUtils.getId(model)));
-
-	/*	String memberOfSet = null;
-		Collection<String> setMem = null;
-		Nest nestForSet = null;
-*/
+		
 		/*
 		 * If the elements in memberToBeAddedToSets are non-hashTag, then do
 		 * pipeline
@@ -775,11 +771,11 @@ public final class JOhm {
 				}
 			}
 		}
-		if (pipeline) {
+		if (pipeline && !isSharded) { 
 			saveUsingPipeline(model, memberToBeAddedToSets,
-          memberToBeAddedToSortedSets, hashedObject);
+          memberToBeAddedToSortedSets, memberToBeRemovedFromSets, memberToBeRemovedFromSortedSets, hashedObject);
 		} else {
-			saveUsingMulti(model, memberToBeAddedToSets, memberToBeAddedToSortedSets,
+			saveUsingMulti(model, memberToBeAddedToSets, memberToBeAddedToSortedSets, memberToBeRemovedFromSets, memberToBeRemovedFromSortedSets, 
           hashedObject);
 		}
 
@@ -796,6 +792,8 @@ public final class JOhm {
 	private static void saveUsingPipeline(final Object model,
       final Multimap<String, String> memberToBeAddedToSets,
       final Multimap<String, ScoreField> memberToBeAddedToSortedSets,
+      Multimap<String, String> memberToBeRemovedFromSets, 
+      Multimap<String, ScoreField> memberToBeRemovedFromSortedSets,
       final Map<String, String> hashedObject) {
 	  Collection<String> setMem;
 	  Jedis jedis = null;
@@ -809,6 +807,50 @@ public final class JOhm {
 	  		jedis = nest.getResource();
 	  		Pipeline pipelined = nest.pipelined(jedis);
 
+	  	//Cleanup Set if required
+	  		for (String hashTag : memberToBeRemovedFromSets.keySet()) {
+	  			setMem = memberToBeRemovedFromSets.get(hashTag);
+
+	  			if (setMem.size() == 1 && !isHashTag(hashTag)) {
+	  				// It is a non-hashTag field
+	  				setMem = memberToBeRemovedFromSets.get(hashTag);
+	  				for (String key : setMem) {
+	  					pipelined.srem(hashTag, key);
+	  				}
+	  				
+
+	  			} else {
+	  				// It is hashTag collection
+	  				setMem = memberToBeRemovedFromSets.get(hashTag);
+
+	  				for (String key : setMem) {
+	  					pipelined.srem(key,  String.valueOf(JOhmUtils.getId(model)));
+	  				}
+	  			}
+	  		}
+	  		// Cleanup SortedSet if required
+	  		for (String hashTag : memberToBeRemovedFromSortedSets.keySet()) {
+	  			Collection<ScoreField> sortedSetMem = memberToBeRemovedFromSortedSets
+	  			    .get(hashTag);
+
+	  			if (sortedSetMem.size() == 1 && !isHashTag(hashTag)) {
+	  				// It is a non-hashTag field
+	  				sortedSetMem = memberToBeRemovedFromSortedSets.get(hashTag);
+
+	  				for (ScoreField sf : sortedSetMem) {
+	  					pipelined.zrem(sf.getKey(), String.valueOf(JOhmUtils.getId(model)));
+	  				}
+
+	  			} else {
+	  				// It is hashTag collection
+	  				sortedSetMem = memberToBeRemovedFromSortedSets.get(hashTag);
+
+	  				for (ScoreField sf : sortedSetMem) {
+	  					pipelined.zrem(sf.getKey(), String.valueOf(JOhmUtils.getId(model)));
+	  				}
+	  			}
+	  		}
+	  		
 	  		// Add to Set
 	  		for (String hashTag : memberToBeAddedToSets.keySet()) {
 	  			setMem = memberToBeAddedToSets.get(hashTag);
@@ -817,7 +859,7 @@ public final class JOhm {
 	  				// It is a non-hashTag field
 	  				setMem = memberToBeAddedToSets.get(hashTag);
 
-	  				pipelined.sadd(String.valueOf(JOhmUtils.getId(model)));
+	  				pipelined.sadd(hashTag, String.valueOf(JOhmUtils.getId(model)));
 
 	  			} else {
 	  				// It is hashTag collection
@@ -839,7 +881,7 @@ public final class JOhm {
 	  				sortedSetMem = memberToBeAddedToSortedSets.get(hashTag);
 
 	  				for (ScoreField sf : sortedSetMem) {
-	  					pipelined.zadd(sf.getKey(), sf.getScore(), String.valueOf(JOhmUtils.getId(model)));
+	  					pipelined.zadd(hashTag, sf.getScore(), String.valueOf(JOhmUtils.getId(model)));
 	  				}
 
 	  			} else {
@@ -851,7 +893,9 @@ public final class JOhm {
 	  				}
 	  			}
 	  		}
-
+	  		
+	  		
+	  		
 	  		pipelined.hmset(nest.cat(JOhmUtils.getId(model)).key(), hashedObject);
 	  		pipelined.sync();
 	  	} finally {
@@ -872,23 +916,32 @@ public final class JOhm {
 	private static void saveUsingMulti(final Object model,
       final Multimap<String, String> memberToBeAddedToSets,
       final Multimap<String, ScoreField> memberToBeAddedToSortedSets,
+      final Multimap<String, String> memberToBeRemovedFromSets, 
+      final Multimap<String, ScoreField> memberToBeRemovedFromSortedSets,
       final Map<String, String> hashedObject) {
 	  
 		Collection<String> setMem;
+		Collection<String> setDelete;
 	  Nest nest = new Nest(model);
 	  Nest nestForSet = null;
 	 
 	  try {
-	  	for (String hashTag : memberToBeAddedToSets.keySet()) {
-	  		setMem = memberToBeAddedToSets.get(hashTag);
 
+	  	for (String hashTag : memberToBeAddedToSets.keySet()) {
+	  		
 	  		nestForSet = new Nest(hashTag);
 	  		nestForSet.setJedisPool(shardedJedisPool, isSharded);
-
+	  		
+	  		setMem = memberToBeAddedToSets.get(hashTag);
 	  		if (setMem.size() == 1 && !isHashTag(hashTag)) {
 	  			// It is a non-hashTag field
+	  			
+	  				//cleanup indices
+  				setDelete = memberToBeRemovedFromSets.get(hashTag);
+  				if(!setDelete.isEmpty()){
+	  				nestForSet.srem(String.valueOf(JOhmUtils.getId(model)));
+	  			}
 	  			setMem = memberToBeAddedToSets.get(hashTag);
-
 	  			nestForSet.sadd(String.valueOf(JOhmUtils.getId(model)));
 
 	  		} else {
@@ -897,7 +950,15 @@ public final class JOhm {
 	  			ShardedJedis sJedis = nestForSet.getShardedResource();
 	  			Transaction tx = nestForSet.multi(sJedis, hashTag);
 	  			try {
-
+		  				//cleanup indices
+	  					setDelete = memberToBeRemovedFromSets.get(hashTag);
+	  					if(!setDelete.isEmpty()){
+	  					for (String key : setDelete) {
+		  					Response<Long> ret = tx.srem(key,
+		  					    String.valueOf(JOhmUtils.getId(model)));
+		  				}
+		  			}
+	  				
 	  				for (String key : setMem) {
 	  					Response<Long> ret = tx.sadd(key,
 	  					    String.valueOf(JOhmUtils.getId(model)));
@@ -906,6 +967,17 @@ public final class JOhm {
 	  				// will have same hashTags
 	  				Collection<ScoreField> sortedSetMem = memberToBeAddedToSortedSets
 	  				    .get(hashTag);
+	  				
+	  				
+		  				//cleanup indices
+	  					Collection<ScoreField>  sortedSetDelete = memberToBeRemovedFromSortedSets.get(hashTag);
+	  					if(!sortedSetDelete.isEmpty()){
+	  					if (sortedSetDelete != null) {
+		  					for (ScoreField sf : sortedSetDelete) {
+		  						tx.zrem(sf.getKey(), String.valueOf(JOhmUtils.getId(model)));
+		  					}
+		  				}
+		  			}
 	  				if (sortedSetMem != null) {
 	  					for (ScoreField sf : sortedSetMem) {
 	  						tx.zadd(sf.getKey(), sf.getScore(), String.valueOf(JOhmUtils.getId(model)));
@@ -1156,8 +1228,7 @@ public final class JOhm {
 												for (String hashTag : hashTags) {
 													key = nest.cat(hashTag).cat(fieldName)
 													    .cat(childfieldName).cat(childFieldValue).key();
-													memberToBeAddedToSets.put(key,
-													    String.valueOf(JOhmUtils.getId(model)));
+													memberToBeAddedToSets.put(hashTag, key);
 												}
 											} else {
 												key = nest.cat(fieldName).cat(childfieldName)
@@ -1482,8 +1553,7 @@ public final class JOhm {
 								for (String hashTag : hashTags) {
 									key = nest.cat(hashTag).cat(fieldNameOfReference)
 									    .cat(childfieldName).cat(childFieldValue).key();
-									memberToBeAddedToSets.put(key,
-									    String.valueOf(JOhmUtils.getId(model)));
+									memberToBeAddedToSets.put(hashTag, key);
 								}
 							} else {
 								key = nest.cat(fieldNameOfReference).cat(childfieldName)
@@ -1501,7 +1571,7 @@ public final class JOhm {
 										key = nest.cat(hashTag).cat(fieldNameOfReference)
 										    .cat(childfieldName).key();
 										memberToBeAddedToSortedSets.put(
-										    key,
+										    hashTag,
 										    new ScoreField(key, Double.valueOf(String
 										        .valueOf(childFieldValue))));
 									}
@@ -1532,88 +1602,6 @@ public final class JOhm {
 		return "{" + fieldName + "_" + fieldValue + "}";
 	}
 
-	/**
-	 * Save given model to Redis using watch. This does not save all its child
-	 * annotated-models. If hierarchical persistence is desirable, use the
-	 * overloaded save interface.
-	 * 
-	 * @param <T>
-	 * @param model
-	 * @return
-	 */
-	@SuppressWarnings("unchecked")
-	public static <T> T transactedSave(final Object model) {
-		// Clean up if exists
-		final Multimap<String, String> memberToBeRemovedFromSets = HashMultimap
-		    .create();
-		final Multimap<String, ScoreField> memberToBeRemovedFromSortedSets = HashMultimap
-		    .create();
-
-		if (!isNew(model)) {
-			feedCleanupData(model.getClass(), JOhmUtils.getId(model),
-			    memberToBeRemovedFromSets, memberToBeRemovedFromSortedSets, false);
-		}
-
-		// Initialize
-		final Multimap<String, String> memberToBeAddedToSets = HashMultimap
-		    .create();
-		final Multimap<String, ScoreField> memberToBeAddedToSortedSets = HashMultimap
-		    .create();
-
-		final Nest nest = initIfNeeded(model);
-
-		// Validate and Evaluate Fields
-		final Map<String, String> hashedObject = new HashMap<String, String>();
-		Map<RedisArray<Object>, Object[]> pendingArraysToPersist = new LinkedHashMap<RedisArray<Object>, Object[]>();
-		ModelMetaData metaData = models.get(model.getClass().getSimpleName());
-		if (metaData != null) {
-			evaluateCacheFields(model, metaData, pendingArraysToPersist,
-			    hashedObject, memberToBeAddedToSets, memberToBeAddedToSortedSets,
-			    nest, false);
-		} else {
-			evaluateFields(model, pendingArraysToPersist, hashedObject,
-			    memberToBeAddedToSets, memberToBeAddedToSortedSets, nest, false);
-		}
-
-		// Always add to the all set, to support getAll
-		memberToBeAddedToSets.put(nest.cat("all").key(),
-		    String.valueOf(JOhmUtils.getId(model)));
-
-		// Do redis transaction
-		List<Object> response = nest.multiWithWatch(new TransactionBlock() {
-			public void execute() throws JedisException {
-				/*
-				 * TODO implement using ShardedRedis multi
-				 * 
-				 * for (String key: memberToBeRemovedFromSets.keySet()) { String
-				 * memberOfSet = memberToBeRemovedFromSets.get(key); srem(key,
-				 * memberOfSet); } for (String key:
-				 * memberToBeRemovedFromSortedSets.keySet()) { String memberOfSet =
-				 * memberToBeRemovedFromSortedSets.get(key); zrem(key, memberOfSet); }
-				 * 
-				 * del(nest.cat(JOhmUtils.getId(model)).key());
-				 * 
-				 * for (String key: memberToBeAddedToSets.keySet()) { String memberOfSet
-				 * = memberToBeAddedToSets.get(key); sadd(key, memberOfSet); } for
-				 * (String key: memberToBeAddedToSortedSets.keySet()) { ScoreField
-				 * scoreField = memberToBeAddedToSortedSets.get(key); zadd(key,
-				 * scoreField.getScore(), scoreField.getMember()); }
-				 * hmset(nest.cat(JOhmUtils.getId(model)).key(), hashedObject);
-				 */
-			}
-		}, nest.cat(JOhmUtils.getId(model)).key());
-
-		if (response != null) {
-			if (pendingArraysToPersist != null && pendingArraysToPersist.size() > 0) {
-				for (Map.Entry<RedisArray<Object>, Object[]> arrayEntry : pendingArraysToPersist
-				    .entrySet()) {
-					arrayEntry.getKey().write(arrayEntry.getValue());
-				}
-			}
-		}
-
-		return (T) model;
-	}
 
 	/**
 	 * Delete Redis-persisted model as represented by the given model Class type
@@ -1776,7 +1764,7 @@ public final class JOhm {
 	  	Jedis jedis = null;
 
 	  	try {
-
+	  		jedis = pNest.getResource();
 	  		Pipeline pipelined = pNest.pipelined(jedis);
 
 	  		Collection<String> setMem = null;
@@ -1999,7 +1987,7 @@ public final class JOhm {
 										}
 									} else {
 										key = nest.cat(field.getName()).key();
-										memberToBeRemovedFromSortedSet.put(key,  new ScoreField(key, Double.valueOf(String
+										memberToBeRemovedFromSortedSet.put(key,  new ScoreField(null, Double.valueOf(String
 								        .valueOf(fieldValue))));
 									}
 								}
@@ -2079,8 +2067,7 @@ public final class JOhm {
 													key = nest.cat(field.getName()).cat(childfieldName)
 													    .key();
 													memberToBeRemovedFromSortedSet.put(key,
-															new ScoreField(nest.cat(field.getName())
-															    .key(), Double.valueOf(String.valueOf(fieldValue))));
+															new ScoreField(null, Double.valueOf(String.valueOf(fieldValue))));
 												}
 											}
 										}
