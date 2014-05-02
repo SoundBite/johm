@@ -1,19 +1,15 @@
 package redis.clients.johm;
 
-import static org.junit.Assert.*;
 
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
+import org.junit.Ignore;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.Protocol;
+
 import redis.clients.jedis.ShardedJedis;
 import redis.clients.jedis.ShardedJedisPool;
 import redis.clients.jedis.shardedcluster.ShardedJedisCluster;
 
+@Ignore
 public class ShardedSearchTest extends SearchTest{
 
 	ShardedJedisPool jedisPool = null;
@@ -23,7 +19,6 @@ public class ShardedSearchTest extends SearchTest{
       startJedisEngine();
   }
 	protected void startJedisEngine() {
-		Boolean isSharded = true;
     String clusterConfigFile= System.getProperty("jedis.cluster.config");
     ShardedJedisCluster.bootstrap(clusterConfigFile);
     JOhm.setPool(ShardedJedisCluster.getPool());
