@@ -517,6 +517,30 @@ public class Nest<T> {
 		}
 	}
 
+//Redis Set Operations
+	public Long sadd(String key, String member) {
+		if (isSharded) {
+			ShardedJedis jedis = null;
+			try {
+				jedis = getShardedResource();
+				Long reply = jedis.sadd(key, member);
+				return reply;
+			} finally {
+				if (jedis != null)
+					returnShardedResource(jedis);
+			}
+		} else {
+			Jedis jedis = null;
+			try {
+				jedis = getResource();
+				Long reply = jedis.sadd(key, member);
+				return reply;
+			} finally {
+				if (jedis != null)
+					returnResource(jedis);
+			}
+		}
+	}
 	
 	public Long srem(String member) {
 		if (isSharded) {
@@ -534,6 +558,29 @@ public class Nest<T> {
 			try {
 				jedis = getResource();
 				Long reply = jedis.srem(key(), member);
+				return reply;
+			} finally {
+				if (jedis != null)
+					returnResource(jedis);
+			}
+		}
+	}
+	public Long srem(String key, String member) {
+		if (isSharded) {
+			ShardedJedis jedis = null;
+			try {
+				jedis = getShardedResource();
+				Long reply = jedis.srem(key, member);
+				return reply;
+			} finally {
+				if (jedis != null)
+					returnShardedResource(jedis);
+			}
+		} else {
+			Jedis jedis = null;
+			try {
+				jedis = getResource();
+				Long reply = jedis.srem(key, member);
 				return reply;
 			} finally {
 				if (jedis != null)

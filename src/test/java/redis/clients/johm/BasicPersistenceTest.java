@@ -72,7 +72,8 @@ public class BasicPersistenceTest extends JOhmTestBase {
 
     	assertNotNull(user);
 
-    	List<User> users =  JOhm.find(User.class, false, new NVField("employeeNumber",1),  new NVField("name","foo"));
+    	List<User> users =  JOhm.find(User.class, false, new NVField[] {new NVField("employeeNumber",1),  new NVField("name","foo")});
+    	//List<User> users =  JOhm.find(User.class, false, new NVField("employeeNumber",1),  new NVField("name","foo"));
     	assertEquals(1, users.size());
     	
     	users =  JOhm.find(User.class, false, new NVField("departmentNumber",2),  new NVField("name","foo"));

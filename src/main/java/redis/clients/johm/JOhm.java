@@ -1681,7 +1681,7 @@ public final class JOhm {
 
 	  				if (setMem.size() == 1 && !isHashTag(hashTag)) {
 	  					// It is a non-hashTag field
-	  					nest.srem(String.valueOf(JOhmUtils.getId(persistedModel)));
+	  					nest.srem(hashTag, String.valueOf(JOhmUtils.getId(persistedModel)));
 
 	  				} else {
 
@@ -1775,12 +1775,11 @@ public final class JOhm {
 
 	  				if (setMem.size() == 1 && !isHashTag(hashTag)) {
 	  					// It is a non-hashTag field
-	  					pipelined.srem(String.valueOf(JOhmUtils
+	  					pipelined.srem(hashTag, String.valueOf(JOhmUtils
 	  					    .getId(persistedModel)));
 
 	  				} else {
 	  					// It is hashTag collection
-
 	  					for (String key : setMem) {
 	  						Response<Long> ret = pipelined.srem(key,
 	  						    String.valueOf(JOhmUtils.getId(persistedModel)));
@@ -1830,7 +1829,7 @@ public final class JOhm {
 				if (setMem.size() == 1 && !isHashTag(hashTag)) {
 					// It is a non-hashTag field
 
-					rNest.sadd(String.valueOf(JOhmUtils.getId(persistedModel)));
+					rNest.sadd(hashTag, String.valueOf(JOhmUtils.getId(persistedModel)));
 
 				} else {
 					// It is hashTag collection
@@ -2110,6 +2109,9 @@ public final class JOhm {
 						}
 					}
 				}
+			//Always add to the all set, to support getAll
+  			memberToBeRemovedFromSet.put(nest.cat("all").key(), String.valueOf(JOhmUtils.getId(persistedModel)));
+  			
 			} catch (IllegalArgumentException e) {
 				throw new JOhmException(e, JOhmExceptionMeta.ILLEGAL_ARGUMENT_EXCEPTION);
 			} catch (IllegalAccessException e) {
