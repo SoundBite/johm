@@ -1058,9 +1058,17 @@ public class Nest<T> {
 	public void returnResource(final Jedis jedis) {
 		jedisPool.returnResource(jedis);
 	}
+	
+	public void returnBrokenResource(final Jedis jedis) {
+		jedisPool.returnBrokenResource(jedis);
+	}
 
 	public void returnShardedResource(final ShardedJedis jedis) {
 		shardedJedisPool.returnResource(jedis);
+	}
+	
+	public void returnBrokenShardedResource(final ShardedJedis jedis) {
+		shardedJedisPool.returnBrokenResource(jedis);
 	}
 
 	public Jedis getResource() {

@@ -803,6 +803,7 @@ public final class JOhm {
 	  	throw new RuntimeException("Multi should be used in ShardedCluster");
 	  } else {
 	  	nest.setJedisPool(jedisPool, isSharded);
+	  	Boolean ex = false;
 	  	try {
 	  		jedis = nest.getResource();
 	  		Pipeline pipelined = nest.pipelined(jedis);
@@ -898,8 +899,14 @@ public final class JOhm {
 	  		
 	  		pipelined.hmset(nest.cat(JOhmUtils.getId(model)).key(), hashedObject);
 	  		pipelined.sync();
-	  	} finally {
-	  		if (jedis != null) {
+	  	} catch (Exception e){
+				 e.printStackTrace();
+				 ex = true;
+				if (jedis != null) {
+					nest.returnBrokenResource(jedis);
+				}
+			} finally {
+	  		if (jedis != null && !ex) {
 	  			nest.returnResource(jedis);
 	  		}
 	  	}
@@ -949,6 +956,7 @@ public final class JOhm {
 	  			setMem = memberToBeAddedToSets.get(hashTag);
 	  			ShardedJedis sJedis = nestForSet.getShardedResource();
 	  			Transaction tx = nestForSet.multi(sJedis, hashTag);
+	  			Boolean ex = false;
 	  			try {
 		  				//cleanup indices
 	  					setDelete = memberToBeRemovedFromSets.get(hashTag);
@@ -985,12 +993,18 @@ public final class JOhm {
 
 	  				}
 	  				tx.exec();
-	  			} finally {
-	  				if (sJedis != null) {
-	  					nestForSet.returnShardedResource(sJedis);
-	  				}
-	  			}
-	  		}
+					} catch (Exception e) {
+						e.printStackTrace();
+						ex = true;
+						if (sJedis != null) {
+							nest.returnBrokenShardedResource(sJedis);
+						}
+					} finally {
+						if (sJedis != null && !ex) {
+							nestForSet.returnShardedResource(sJedis);
+						}
+					}
+				}
 
 	  	}
 
@@ -1033,6 +1047,7 @@ public final class JOhm {
 	  		// It is hashTag collection
 	  		setMem = memberToBeAddedToSets.get(hashTag);
 	  		ShardedJedis sJedis = null;
+	  		Boolean ex = false;
 	  		try {
 	  			sJedis = nestForSet.getShardedResource();
 	  			Transaction tx = nestForSet.multi(sJedis, hashTag);
@@ -1051,8 +1066,14 @@ public final class JOhm {
 	  				}
 	  			}
 	  			tx.exec();
-	  		} finally {
-	  			if (sJedis != null) {
+	  		} catch (Exception e) {
+					e.printStackTrace();
+					ex = true;
+					if (sJedis != null) {
+						nestForSet.returnBrokenShardedResource(sJedis);
+					}
+				} finally {
+	  			if (sJedis != null && !ex) {
 	  				nestForSet.returnShardedResource(sJedis);
 	  			}
 	  		}
@@ -1673,6 +1694,7 @@ public final class JOhm {
 
 	  	Nest nest = new Nest();
 	  	nest.setJedisPool(shardedJedisPool, isSharded);
+	  	Boolean ex = false;
 	  	try {
 
 	  		if (deleteIndexes) {
@@ -1706,8 +1728,14 @@ public final class JOhm {
 	  							}
 	  						}
 	  						tx.exec();
-	  					} finally {
+	  					} catch (Exception e) {
+	  						e.printStackTrace();
+	  						ex = true;
 	  						if (sJedis != null) {
+	  							mNest.returnBrokenShardedResource(sJedis);
+	  						}
+	  					} finally {
+	  						if (sJedis != null && !ex) {
 	  							mNest.returnShardedResource(sJedis);
 	  						}
 	  					}
@@ -1736,6 +1764,7 @@ public final class JOhm {
 	  if (isSharded) { // If no hashTag, do pipeline (can't do multi)
 	  	pNest.setJedisPool(shardedJedisPool, isSharded);
 	  	ShardedJedis sJedis = null;
+	  	Boolean ex = false;
 	  	try {
 	  		sJedis = pNest.getShardedResource();
 	  		ShardedJedisPipeline sPipelined = pNest
@@ -1753,8 +1782,14 @@ public final class JOhm {
 	  		}
 	  		sPipelined.del(pNest.cat(JOhmUtils.getId(persistedModel)).key());
 	  		sPipelined.sync();
-	  	} finally {
-	  		if (sJedis != null) {
+	  	} catch (Exception e) {
+				e.printStackTrace();
+				ex = true;
+				if (sJedis != null) {
+					pNest.returnBrokenShardedResource(sJedis);
+				}
+			} finally {
+	  		if (sJedis != null && !ex) {
 	  			pNest.returnShardedResource(sJedis);
 	  		}
 	  	}
@@ -1762,6 +1797,7 @@ public final class JOhm {
 	  } else { // Jedis Pipeline
 	  	pNest.setJedisPool(jedisPool, isSharded);
 	  	Jedis jedis = null;
+	  	Boolean ex = false;
 
 	  	try {
 	  		jedis = pNest.getResource();
@@ -1801,8 +1837,14 @@ public final class JOhm {
 
 	  		pipelined.del(pNest.cat(JOhmUtils.getId(persistedModel)).key());
 	  		pipelined.sync();
-	  	} finally {
-	  		if (jedis != null) {
+	  	} catch (Exception e) {
+				e.printStackTrace();
+				ex = true;
+				if (jedis != null) {
+					pNest.returnBrokenResource(jedis);
+				}
+			} finally {
+	  		if (jedis != null && !ex) {
 	  			pNest.returnResource(jedis);
 	  		}
 	  	}
@@ -1835,6 +1877,7 @@ public final class JOhm {
 					// It is hashTag collection
 					ShardedJedis sJedis = rNest.getShardedResource();
 					Transaction tx = rNest.multi(sJedis, hashTag);
+					Boolean ex = false;
 					try {
 						boolean flag = true;
 						for (String key : setMem) {
@@ -1857,8 +1900,14 @@ public final class JOhm {
 							}
 						}
 						tx.exec();
-					} finally {
+					} catch (Exception e) {
+						e.printStackTrace();
+						ex = true;
 						if (sJedis != null) {
+							rNest.returnBrokenShardedResource(sJedis);
+						}
+					} finally {
+						if (sJedis != null && !ex) {
 							rNest.returnShardedResource(sJedis);
 						}
 					}
