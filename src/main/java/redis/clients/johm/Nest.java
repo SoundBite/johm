@@ -139,9 +139,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    }finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -158,9 +157,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    }finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -182,9 +180,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -201,9 +198,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -225,9 +221,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -244,9 +239,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -284,19 +278,17 @@ public class Nest<T> {
     public List<Object> multi(TransactionBlock transaction) {
     	Jedis jedis = null;
     	Boolean ex = false;
-    	List<Object> multi = null;
     	try{
     		jedis = getResource();
-    		multi = jedis.multi(transaction);
+    		List<Object>  multi = jedis.multi(transaction);
     		return multi;
     	} catch (Exception e) {
 			e.printStackTrace();
 			ex = true;
 			if (jedis != null) {
 				returnBrokenResource(jedis);
-				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 			}
-			return multi;
+			throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 	    }finally {
     		if (jedis != null && !ex) {
     			returnResource(jedis);
@@ -317,9 +309,8 @@ public class Nest<T> {
 			ex = true;
 			if (jedis != null) {
 				returnBrokenResource(jedis);
-				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 			}
-			return null;
+			throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 	    } finally {
     		if (jedis != null && !ex) {
     			returnResource(jedis);
@@ -340,9 +331,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -360,9 +350,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -384,9 +373,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return false;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -404,9 +392,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return false;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -428,9 +415,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return Boolean.FALSE;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -448,9 +434,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return Boolean.FALSE;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -473,9 +458,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -492,9 +476,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -517,9 +500,8 @@ public class Nest<T> {
 					ex = true;
 					if (jedis != null) {
 						returnBrokenShardedResource(jedis);
-						throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 					}
-					return null;
+					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 			    } finally {
 					if (jedis != null && !ex) {
 						returnShardedResource(jedis);
@@ -536,9 +518,8 @@ public class Nest<T> {
 					ex = true;
 					if (jedis != null) {
 						returnBrokenResource(jedis);
-						throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 					}
-					return null;
+					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 			    } finally {
 			    	
 					if (jedis != null && !ex) {
@@ -562,9 +543,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -581,9 +561,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -605,9 +584,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -624,9 +602,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -648,9 +625,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-			    return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -667,9 +643,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -691,9 +666,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -710,9 +684,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -734,9 +707,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -753,9 +725,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -778,9 +749,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -797,9 +767,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -822,9 +791,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -841,9 +809,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -865,9 +832,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -884,9 +850,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -907,9 +872,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -926,9 +890,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -950,9 +913,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -969,9 +931,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -992,9 +953,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return Boolean.FALSE;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1010,9 +970,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return Boolean.FALSE;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1033,9 +992,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1051,9 +1009,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1077,9 +1034,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1097,9 +1053,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1121,8 +1076,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1139,8 +1094,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1163,9 +1118,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1182,9 +1136,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1206,9 +1159,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1225,9 +1177,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1249,9 +1200,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1268,9 +1218,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1293,9 +1242,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1312,9 +1260,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1336,9 +1283,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1355,9 +1301,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1379,9 +1324,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1398,9 +1342,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1423,9 +1366,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1442,9 +1384,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1466,9 +1407,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1485,9 +1425,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1509,9 +1448,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1528,9 +1466,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1552,9 +1489,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1571,9 +1507,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1595,9 +1530,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1614,9 +1548,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1638,8 +1571,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1656,8 +1589,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1679,9 +1612,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1698,9 +1630,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
@@ -1722,9 +1653,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenShardedResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnShardedResource(jedis);
@@ -1741,9 +1671,8 @@ public class Nest<T> {
 				ex = true;
 				if (jedis != null) {
 					returnBrokenResource(jedis);
-					throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 				}
-				return null;
+				throw new JOhmException(e.getMessage(), JOhmExceptionMeta.GENERIC_EXCEPTION);
 		    } finally {
 				if (jedis != null && !ex) {
 					returnResource(jedis);
