@@ -19,7 +19,7 @@ ShardedJedisPool jedisPool = null;
 	protected void startJedisEngine() {
 		Boolean isSharded = true;
     String clusterConfigFile= System.getProperty("jedis.cluster.config");
-    ShardedJedisCluster.bootstrap(clusterConfigFile);
+    ShardedJedisCluster.bootstrap(clusterConfigFile, null);
     JOhm.setPool(ShardedJedisCluster.getPool());
     purgeRedis();
 }

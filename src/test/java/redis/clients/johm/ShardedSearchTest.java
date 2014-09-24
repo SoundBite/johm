@@ -20,7 +20,7 @@ public class ShardedSearchTest extends SearchTest{
   }
 	protected void startJedisEngine() {
     String clusterConfigFile= System.getProperty("jedis.cluster.config");
-    ShardedJedisCluster.bootstrap(clusterConfigFile);
+    ShardedJedisCluster.bootstrap(clusterConfigFile,null);
     JOhm.setPool(ShardedJedisCluster.getPool());
     purgeRedis();
 }

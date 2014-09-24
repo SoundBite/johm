@@ -18,15 +18,12 @@ import com.google.common.collect.Multimap;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Pipeline;
-import redis.clients.jedis.RedisPipeline;
 import redis.clients.jedis.Response;
 import redis.clients.jedis.ShardedJedis;
 import redis.clients.jedis.ShardedJedisPipeline;
 import redis.clients.jedis.ShardedJedisPool;
 import redis.clients.jedis.Transaction;
-import redis.clients.jedis.TransactionBlock;
 import redis.clients.jedis.ZParams;
-import redis.clients.jedis.exceptions.JedisException;
 import redis.clients.johm.NVField.Condition;
 import redis.clients.johm.collections.RedisArray;
 
@@ -369,6 +366,11 @@ public final class JOhm {
 							    + value));
 						}
 					}
+					
+					//delete temporary key only if key is combination of equal to and range fields 
+    				if (destinationKeyForEqualToFields != null) {
+    					nest.del();
+    				}
 				}
 			}
 
@@ -387,6 +389,15 @@ public final class JOhm {
 						}
 					}
 				}
+			}
+			
+			//Delete the temporary key only if more than one field 
+			//With one field, key is key of regular set and not a temporary set.
+			if (equalsFields.size() > 1) {
+				nest = new Nest(clazz);
+				setPool(nest);
+				nest.cat(destinationKeyForEqualToFields);
+				nest.del();
 			}
 		} catch (Exception e) {
 			throw new JOhmException(e, JOhmExceptionMeta.GENERIC_EXCEPTION);
