@@ -326,6 +326,11 @@ public final class JOhm {
     						modelIdStrings.retainAll(nest.zrangebyscore(INF_MINUS,"(" + value));
     					}
     				}
+    				
+    				//delete temporary key only if key is combination of equal to and range fields 
+    				if (destinationKeyForEqualToFields != null) {
+    					nest.del();
+    				}
     			}
     		}
     		
@@ -344,6 +349,15 @@ public final class JOhm {
     					}
     				}
     			}
+    		}
+    		
+    		//Delete the temporary key only if more than one field 
+    		//With one field, key is key of regular set and not a temporary set.
+    		if (equalsFields.size() > 1) {
+    			nest = new Nest(clazz);
+    			nest.setJedisPool(jedisPool);
+    			nest.cat(destinationKeyForEqualToFields);
+    			nest.del();
     		}
     	}catch(Exception e) {
     		throw new JOhmException(e,
