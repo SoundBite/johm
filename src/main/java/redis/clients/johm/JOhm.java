@@ -237,6 +237,7 @@ public final class JOhm {
 			// Find hashTag and also do validation here
 			List<NVField> rangeFields = new ArrayList<NVField>();
 			List<NVField> equalsFields = new ArrayList<NVField>();
+			List<NVField> notEqualsFields = new ArrayList<NVField>();
 			Map<String, Field> fields = new HashMap<String, Field>();
 			Nest nest = new Nest(clazz);
 			setPool(nest);
@@ -276,8 +277,14 @@ public final class JOhm {
 
 				// Continue if condition is not 'Equals'
 				// Also, add to range fields
-				if (!nvField.getConditionUsed().equals(Condition.EQUALS)) {
+				if (!nvField.getConditionUsed().equals(Condition.EQUALS)
+						&& !nvField.getConditionUsed().equals(Condition.NOTEQUALS)) {
 					rangeFields.add(nvField);
+					continue;
+				}
+				
+				if (nvField.getConditionUsed().equals(Condition.NOTEQUALS)) {
+					notEqualsFields.add(nvField);
 					continue;
 				}
 
@@ -292,86 +299,115 @@ public final class JOhm {
 
 			boolean isReference = false;
 			Set<String> modelIdStrings = new HashSet<String>();
-			if (rangeFields.isEmpty()) {// we are done if no range fields, get
+			if (rangeFields.isEmpty() && notEqualsFields.isEmpty()) {// we are done if no range fields, get
 				// members of
 				// destinationKeyForEqualToFields
 				nest = new Nest(clazz);
 				setPool(nest);
 				nest.cat(destinationKeyForEqualToFields);
 				modelIdStrings.addAll(nest.smembers());
-			} else {// Get intersection of range fields and
-				// destinationKeyForEqualToFields
-				referenceAttributeName = null;
-				String value = null;
-				String keyNameForRange = null;
-				for (NVField rangeField : rangeFields) {
-					// Get destination key for range fields
-					keyNameForRange = getDestinationKeyForRangeField(clazz, rangeField,
-					    fields, destinationKeyForEqualToFields, hashTag);
-					if (keyNameForRange == null) {
+			} else {		
+				
+				if (rangeFields.isEmpty()) {//If no rangeFields
+					// members of
+					// destinationKeyForEqualToFields
+					nest = new Nest(clazz);
+					setPool(nest);
+					nest.cat(destinationKeyForEqualToFields);
+					modelIdStrings.addAll(nest.smembers());
+				}else{//Process range fields
+					referenceAttributeName = null;
+					String value = null;
+					String keyNameForRange = null;
+					for (NVField rangeField : rangeFields) {
+						//Store intersection of range fields and
+						// destinationKeyForEqualToFields and store at destination key
+						keyNameForRange = getDestinationKeyForRangeField(clazz, rangeField,
+								fields, destinationKeyForEqualToFields, hashTag);
+						if (keyNameForRange == null) {
+							continue;
+						}
+
+						if (metaDataOfClass != null) {
+							isReference = metaDataOfClass.referenceFields.containsKey(field
+									.getName());
+						} else {
+							isReference = field.isAnnotationPresent(Reference.class);
+						}
+
+						if (isReference) {
+							referenceAttributeName = rangeField.getReferenceAttributeName();
+						}
+
+						// Find the range of values stored at keyNameForRange
+						nest = new Nest(keyNameForRange);
+						setPool(nest);
+						if (referenceAttributeName != null) {
+							value = String.valueOf(rangeField.getReferenceAttributeValue());
+						} else {
+							value = String.valueOf(rangeField.getAttributeValue());
+						}
+
+						if (JOhmUtils.isNullOrEmpty(value)) {
+							continue;
+						}
+
+						if (rangeField.getConditionUsed()
+								.equals(Condition.GREATERTHANEQUALTO)) {
+							if (modelIdStrings.isEmpty()) {
+								modelIdStrings.addAll(nest.zrangebyscore(value, INF_PLUS));
+							} else {
+								modelIdStrings.retainAll(nest.zrangebyscore(value, INF_PLUS));
+							}
+						} else if (rangeField.getConditionUsed()
+								.equals(Condition.GREATERTHAN)) {
+							if (modelIdStrings.isEmpty()) {
+								modelIdStrings.addAll(nest.zrangebyscore("(" + value, INF_PLUS));
+							} else {
+								modelIdStrings.retainAll(nest
+										.zrangebyscore("(" + value, INF_PLUS));
+							}
+						} else if (rangeField.getConditionUsed().equals(
+								Condition.LESSTHANEQUALTO)) {
+							if (modelIdStrings.isEmpty()) {
+								modelIdStrings.addAll(nest.zrangebyscore(INF_MINUS, value));
+							} else {
+								modelIdStrings.retainAll(nest.zrangebyscore(INF_MINUS, value));
+							}
+						} else if (rangeField.getConditionUsed().equals(Condition.LESSTHAN)) {
+							if (modelIdStrings.isEmpty()) {
+								modelIdStrings.addAll(nest.zrangebyscore(INF_MINUS, "(" + value));
+							} else {
+								modelIdStrings.retainAll(nest.zrangebyscore(INF_MINUS, "("
+										+ value));
+							}
+						}
+
+						//delete temporary key only if key is combination of equal to and range fields 
+						if (destinationKeyForEqualToFields != null) {
+							nest.del();
+						}
+					}
+				}
+				
+				//Process NotEquals fields
+				String keyNameForNotEquals = null;
+				for (NVField notEqualsField : notEqualsFields) {
+					//Store intersection of range fields and
+					// destinationKeyForEqualToFields and store at destination key
+					keyNameForNotEquals = getDestinationKeyForField(clazz, notEqualsField,
+					    fields, hashTag);
+					if (keyNameForNotEquals == null) {
 						continue;
-					}
-
-					if (metaDataOfClass != null) {
-						isReference = metaDataOfClass.referenceFields.containsKey(field
-						    .getName());
-					} else {
-						isReference = field.isAnnotationPresent(Reference.class);
-					}
-
-					if (isReference) {
-						referenceAttributeName = rangeField.getReferenceAttributeName();
 					}
 
 					// Find the range of values stored at keyNameForRange
-					nest = new Nest(keyNameForRange);
+					nest = new Nest(keyNameForNotEquals);
 					setPool(nest);
-					if (referenceAttributeName != null) {
-						value = String.valueOf(rangeField.getReferenceAttributeValue());
-					} else {
-						value = String.valueOf(rangeField.getAttributeValue());
+					if (!modelIdStrings.isEmpty()) {
+						modelIdStrings.removeAll(nest.smembers());
 					}
-
-					if (JOhmUtils.isNullOrEmpty(value)) {
-						continue;
-					}
-
-					if (rangeField.getConditionUsed()
-					    .equals(Condition.GREATERTHANEQUALTO)) {
-						if (modelIdStrings.isEmpty()) {
-							modelIdStrings.addAll(nest.zrangebyscore(value, INF_PLUS));
-						} else {
-							modelIdStrings.retainAll(nest.zrangebyscore(value, INF_PLUS));
-						}
-					} else if (rangeField.getConditionUsed()
-					    .equals(Condition.GREATERTHAN)) {
-						if (modelIdStrings.isEmpty()) {
-							modelIdStrings.addAll(nest.zrangebyscore("(" + value, INF_PLUS));
-						} else {
-							modelIdStrings.retainAll(nest
-							    .zrangebyscore("(" + value, INF_PLUS));
-						}
-					} else if (rangeField.getConditionUsed().equals(
-					    Condition.LESSTHANEQUALTO)) {
-						if (modelIdStrings.isEmpty()) {
-							modelIdStrings.addAll(nest.zrangebyscore(INF_MINUS, value));
-						} else {
-							modelIdStrings.retainAll(nest.zrangebyscore(INF_MINUS, value));
-						}
-					} else if (rangeField.getConditionUsed().equals(Condition.LESSTHAN)) {
-						if (modelIdStrings.isEmpty()) {
-							modelIdStrings.addAll(nest.zrangebyscore(INF_MINUS, "(" + value));
-						} else {
-							modelIdStrings.retainAll(nest.zrangebyscore(INF_MINUS, "("
-							    + value));
-						}
-					}
-					
-					//delete temporary key only if key is combination of equal to and range fields 
-    				if (destinationKeyForEqualToFields != null) {
-    					nest.del();
-    				}
-				}
+				}	
 			}
 
 			// Get the result
@@ -473,6 +509,73 @@ public final class JOhm {
 		        destinationKeyForEqualToMembers.length());
 
 		return destinationKeyForEqualToMembers;
+	}
+	
+	private static String getDestinationKeyForField(Class<?> clazz,
+			NVField nvField, Map<String, Field> fields, String hashTag)
+					throws Exception {
+		if (nvField == null) {
+			return null;
+		}
+
+		// Process "EQUALS" fields
+		ModelMetaData metaDataOfClass = JOhm.models.get(clazz.getSimpleName());
+		Nest nest = new Nest(clazz);
+		setPool(nest);
+		Field field = null;
+		boolean isAttribute = false;
+		boolean isReference = false;
+		String attributeName = null;
+		String referenceAttributeName = null;
+
+		// Get field
+		field = fields.get(nvField.getAttributeName());
+		field.setAccessible(true);
+
+		// Processing of Field
+		if (metaDataOfClass != null) {
+			isAttribute = metaDataOfClass.attributeFields.containsKey(field
+					.getName());
+			isReference = metaDataOfClass.referenceFields.containsKey(field
+					.getName());
+		} else {
+			isAttribute = field.isAnnotationPresent(Attribute.class);
+			isReference = field.isAnnotationPresent(Reference.class);
+		}
+
+		// Keep track of keys via NEST
+		if (isAttribute || isReference) {// Do hash tagging only for
+			// attribute or reference
+			if (isReference) {
+				attributeName = JOhmUtils.getReferenceKeyName(field);
+				referenceAttributeName = nvField.getReferenceAttributeName();
+				if (hashTag != null) {
+					nest.cat(hashTag).cat(attributeName).cat(referenceAttributeName)
+					.cat(nvField.getReferenceAttributeValue()).next();
+				} else {
+					nest.cat(attributeName).cat(referenceAttributeName)
+					.cat(nvField.getReferenceAttributeValue()).next();
+				}
+			} else {
+				attributeName = nvField.getAttributeName();
+				if (hashTag != null) {
+					nest.cat(hashTag).cat(attributeName)
+					.cat(nvField.getAttributeValue()).next();
+				} else {
+					nest.cat(attributeName).cat(nvField.getAttributeValue()).next();
+				}
+			}
+		} else {// no hash tagging
+			attributeName = nvField.getAttributeName();
+			nest.cat(attributeName).cat(nvField.getAttributeValue()).next();
+		}
+
+		String destinationKeyForEqualToMembers = nest.combineKeys();
+		destinationKeyForEqualToMembers = destinationKeyForEqualToMembers
+				.substring(nest.key().length() + 1,
+						destinationKeyForEqualToMembers.length());
+
+		return nest.combineKeys();
 	}
 
 	private static String getDestinationKeyForRangeField(Class<?> clazz,
