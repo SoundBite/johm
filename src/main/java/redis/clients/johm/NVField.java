@@ -12,7 +12,7 @@ public class NVField {
 	private Condition conditionUsed;
 	
 	public static enum Condition {
-        EQUALS, GREATERTHANEQUALTO, LESSTHANEQUALTO, GREATERTHAN, LESSTHAN;
+        EQUALS, GREATERTHANEQUALTO, LESSTHANEQUALTO, GREATERTHAN, LESSTHAN, NOTEQUALS;
 	}
 
 	public NVField(String attributeName, Object attributeValue) {

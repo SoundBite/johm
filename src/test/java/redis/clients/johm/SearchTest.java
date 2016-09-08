@@ -667,6 +667,8 @@ public class SearchTest extends JOhmTestBase {
 		user.setName("f");
 		user.setCountry(somewhere);
 		JOhm.save(user);
+		
+		Long idOfUser2 = user.getId();
 
 		user=new User();  
 		user.setEmployeeNumber(1);
@@ -676,6 +678,8 @@ public class SearchTest extends JOhmTestBase {
 		user.setName("f");
 		JOhm.save(user);
 
+		Long idOfUser3 = user.getId();
+		
 		user=new User();
 		user.setEmployeeNumber(1);
 		user.setDepartmentNumber(2);
@@ -683,6 +687,8 @@ public class SearchTest extends JOhmTestBase {
 		user.setSalary(2000f);
 		user.setName("b");
 		JOhm.save(user);
+		
+		Long idOfUser4 = user.getId();
 
 		user=new User();
 		user.setEmployeeNumber(1);
@@ -691,6 +697,8 @@ public class SearchTest extends JOhmTestBase {
 		user.setSalary(6000f);
 		user.setName("m");
 		JOhm.save(user);
+		
+		Long idOfUser5 = user.getId();
 
 		List<User> gotUsers=JOhm.find(User.class,false, new NVField("employeeNumber",1), new NVField("age", 55, Condition.LESSTHANEQUALTO), new NVField("name","b"));
 		assertEquals(1,gotUsers.size());
@@ -803,11 +811,17 @@ public class SearchTest extends JOhmTestBase {
 		assertEquals(gotUsers.get(0).getId(), idOfUser1);
 		
 		JOhm.delete(User.class, idOfUser1);
+		
 		gotUsers=JOhm.find(User.class,false, new NVField("employeeNumber",1), new NVField("age", 88, Condition.LESSTHANEQUALTO), new NVField("address","houseNumber", 12, Condition.LESSTHANEQUALTO));
 		assertEquals(0,gotUsers.size());
 		
 		gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("age", 88, Condition.LESSTHANEQUALTO), new NVField("address","houseNumber", 12, Condition.LESSTHANEQUALTO));
 		assertEquals(0,gotUsers.size());
+		
+		JOhm.delete(User.class, idOfUser2);
+		JOhm.delete(User.class, idOfUser3);
+		JOhm.delete(User.class, idOfUser4);
+		JOhm.delete(User.class, idOfUser5);
 		
 		user=new User();
 		user.setEmployeeNumber(1);
@@ -818,11 +832,77 @@ public class SearchTest extends JOhmTestBase {
 		user.setAddress(someWhereAddress);
 		user.setCountry(somewhere);
 		JOhm.save(user);
+		
+		idOfUser1 = user.getId();
 
 		gotUsers=JOhm.find(User.class,false, new NVField("employeeNumber",1), new NVField("age", 88, Condition.LESSTHANEQUALTO), new NVField("address","houseNumber", 12, Condition.LESSTHANEQUALTO));
 		assertEquals(1,gotUsers.size());
 		
 		gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("age", 88, Condition.LESSTHANEQUALTO), new NVField("address","houseNumber", 12, Condition.LESSTHANEQUALTO));
+		assertEquals(1,gotUsers.size());
+		
+		JOhm.delete(User.class, idOfUser1);
+		
+		user=new User();
+		user.setEmployeeNumber(1);
+		user.setDepartmentNumber(2);
+		user.setAge(99);
+		user.setName("b");
+		user.setSalary(2000f);
+		user.setAddress(someWhereAddress);
+		user.setCountry(somewhere);
+		JOhm.save(user);
+		
+		gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("age", 88, Condition.EQUALS));
+		assertEquals(0,gotUsers.size());
+		
+		gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("age", 99, Condition.EQUALS));
+		assertEquals(1,gotUsers.size());
+		
+		gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("age", 88, Condition.NOTEQUALS));
+		assertEquals(1,gotUsers.size());
+	}
+	
+	@Test
+	public void canDoMultiFindWithNotEqualsConditions() {
+		Address someWhereAddress = new Address();
+		someWhereAddress.setStreetName("xyz");
+		someWhereAddress.setHouseNumber(12);
+		JOhm.save(someWhereAddress);
+
+		Country somewhere = new Country();
+		somewhere.setName("somewhere");
+		JOhm.save(somewhere);
+
+		User user=new User();
+		user.setEmployeeNumber(1);
+		user.setDepartmentNumber(2);
+		user.setAge(99);
+		user.setName("b");
+		user.setSalary(2000f);
+		user.setAddress(someWhereAddress);
+		user.setCountry(somewhere);
+		JOhm.save(user);
+
+		List<User> gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("age", 88, Condition.EQUALS));
+		assertEquals(0,gotUsers.size());
+
+		gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("age", 99, Condition.EQUALS));
+		assertEquals(1,gotUsers.size());
+
+		gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("age", 88, Condition.NOTEQUALS));
+		assertEquals(1,gotUsers.size());
+		
+		gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("age", 88, Condition.NOTEQUALS), new NVField("salary", 2000, Condition.GREATERTHAN));
+		assertEquals(0,gotUsers.size());
+		
+		gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("age", 88, Condition.NOTEQUALS), new NVField("salary", 2000, Condition.GREATERTHANEQUALTO));
+		assertEquals(1,gotUsers.size());
+		
+		gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("age", 88, Condition.NOTEQUALS), new NVField("salary", 2000, Condition.LESSTHAN));
+		assertEquals(0,gotUsers.size());
+		
+		gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("age", 88, Condition.NOTEQUALS), new NVField("salary", 2000, Condition.LESSTHANEQUALTO));
 		assertEquals(1,gotUsers.size());
 	}
 
