@@ -905,6 +905,9 @@ public class SearchTest extends JOhmTestBase {
 		
 		gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("age", 88, Condition.NOTEQUALS), new NVField("salary", 2000, Condition.LESSTHANEQUALTO));
 		assertEquals(1,gotUsers.size());
+		
+		gotUsers=JOhm.find(User.class,false, new NVField("departmentNumber",2), new NVField("age", 99, Condition.NOTEQUALS), new NVField("salary", 2000, Condition.LESSTHANEQUALTO));
+		assertEquals(0,gotUsers.size());
 	}
 
 	@Test
